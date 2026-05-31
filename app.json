@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "AuraCheck AI",
+    "slug": "auracheck-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "auracheck",
+    "splash": {
+      "backgroundColor": "#0b0c12",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.auracheck.ai",
+      "infoPlist": {
+        "NSCameraUsageDescription": "AuraCheck needs your camera to scan your face and outfit.",
+        "NSPhotoLibraryUsageDescription": "AuraCheck needs photo access so you can upload a photo to scan."
+      }
+    },
+    "android": {
+      "package": "com.auracheck.ai",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b0c12"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-image-picker",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d264c07b-8d3a-4314-b980-919d54061744"
+      }
+    },
+    "owner": "just-tapping"
+  }
+}
