@@ -1,5 +1,7 @@
 // ScoreDisplay.js — the Aura Score hero. Four display styles (Tweaks panel):
 //   'bar' (default) | 'ring' | 'number' | 'tier'
+// Serif numerals use a generous lineHeight + includeFontPadding:false so the
+// tall Instrument Serif digits are never vertically clipped on Android.
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, Easing } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgGrad, Stop, Circle } from 'react-native-svg';
@@ -7,7 +9,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 import MaskedText from './MaskedText';
 
-// count-up hook
 function useCountUp(target, animate = true, dur = 1100) {
   const [shown, setShown] = useState(animate ? 0 : target);
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function ScoreDisplay({ score, tier, mode = 'bar', animate = true
           />
         </Svg>
         <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontFamily: t.fonts.serif, fontSize: 64, lineHeight: 66, color: t.ink }}>{shown}</Text>
+          <Text style={{ fontFamily: t.fonts.serif, fontSize: 64, lineHeight: 80, color: t.ink, includeFontPadding: false, textAlign: 'center' }}>{shown}</Text>
           <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, letterSpacing: 2, color: t.accentB, marginTop: 4, fontWeight: '600' }}>
             {tier.label} · {tier.name.toUpperCase()}
           </Text>
@@ -71,8 +72,8 @@ export default function ScoreDisplay({ score, tier, mode = 'bar', animate = true
     return (
       <View style={{ alignItems: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-          <Text style={{ fontFamily: t.fonts.serif, fontSize: 116, lineHeight: 116, color: t.ink }}>{shown}</Text>
-          <Text style={{ fontFamily: t.fonts.serif, fontSize: 34, color: t.inkFaint }}>/100</Text>
+          <Text style={{ fontFamily: t.fonts.serif, fontSize: 116, lineHeight: 144, color: t.ink, includeFontPadding: false, textAlign: 'center' }}>{shown}</Text>
+          <Text style={{ fontFamily: t.fonts.serif, fontSize: 34, lineHeight: 44, color: t.inkFaint, includeFontPadding: false }}>/100</Text>
         </View>
         <Text style={{ fontFamily: t.fonts.sans, fontSize: 13, letterSpacing: 2, color: t.accentB, fontWeight: '600', marginTop: 6 }}>
           {tier.label} · {tier.name.toUpperCase()}
@@ -97,7 +98,6 @@ export default function ScoreDisplay({ score, tier, mode = 'bar', animate = true
     );
   }
 
-  // bar (default)
   const [barW, setBarW] = useState(0);
   const fill = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -108,8 +108,8 @@ export default function ScoreDisplay({ score, tier, mode = 'bar', animate = true
   return (
     <View style={{ width: '100%', alignItems: 'center' }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
-        <Text style={{ fontFamily: t.fonts.serif, fontSize: 84, lineHeight: 84, color: t.ink }}>{shown}</Text>
-        <Text style={{ fontFamily: t.fonts.serif, fontSize: 26, color: t.inkFaint }}>/100</Text>
+        <Text style={{ fontFamily: t.fonts.serif, fontSize: 84, lineHeight: 104, color: t.ink, includeFontPadding: false, textAlign: 'center' }}>{shown}</Text>
+        <Text style={{ fontFamily: t.fonts.serif, fontSize: 26, lineHeight: 34, color: t.inkFaint, includeFontPadding: false }}>/100</Text>
         <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, letterSpacing: 2, color: t.accentB, fontWeight: '600', marginLeft: 4 }}>{tier.label}</Text>
       </View>
       <View

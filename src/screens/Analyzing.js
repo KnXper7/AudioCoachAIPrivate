@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Animated } from 'react-native';
+import { View, Text, Animated, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
-import AuraOrb from '../components/AuraOrb';
+import OrbMark from '../components/OrbMark';
 import { useTheme } from '../theme/ThemeContext';
-import { aiService } from '../services/aiService';
+import { aiService } from '../services/ai';
 
-export default function Analyzing({ mode, imageUri, onDone }) {
+export default function Analyzing({ uri, isPro, context, formality, durationSec, prev, liveTranscript, onDone, onFail }) {
   const t = useTheme();
-  const steps = aiService.steps(mode);
+  const steps = aiService.steps();
   const [i, setI] = useState(0);
   const [pct, setPct] = useState(0);
   const fade = useRef(new Animated.Value(0)).current;
@@ -16,11 +16,20 @@ export default function Analyzing({ mode, imageUri, onDone }) {
 
   useEffect(() => {
     let result = null;
-    let done = false;
-    aiService.analyze(mode, imageUri).then((r) => {
-      result = r;
-      if (done) onDone(r);
-    });
+    let error = null;
+    let timerDone = false;
+
+    const fail = (err) => {
+      Alert.alert(
+        "Couldn't reach the coach",
+        (err?.message ? err.message + '\n\n' : '') + 'Check your internet connection and try again.'
+      );
+      onFail && onFail(err);
+    };
+
+    aiService.analyze('voice', uri, { isPro, context, formality, durationSec, prev, liveTranscript })
+      .then((r) => { result = r; if (timerDone) onDone(r); })
+      .catch((err) => { error = err; if (timerDone) fail(err); });
 
     const t0 = Date.now();
     const total = 2000;
@@ -30,8 +39,10 @@ export default function Analyzing({ mode, imageUri, onDone }) {
       setI(Math.min(steps.length - 1, Math.floor((e / total) * steps.length)));
       if (e >= total) {
         clearInterval(tick);
-        done = true;
+        timerDone = true;
         if (result) onDone(result);
+        else if (error) fail(error);
+        // else: still waiting on the network — handlers above fire when it lands
       }
     }, 60);
     return () => clearInterval(tick);
@@ -45,9 +56,9 @@ export default function Analyzing({ mode, imageUri, onDone }) {
   return (
     <Screen>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 }}>
-        <AuraOrb size={230} speed={3.2} scanning intensity={1.15} />
+        <OrbMark size={185} animate />
         <View style={{ marginTop: 40, alignItems: 'center' }}>
-          <Text style={{ fontFamily: t.fonts.serif, fontSize: 30, color: t.ink }}>Reading your aura</Text>
+          <Text style={{ fontFamily: t.fonts.serif, fontSize: 30, color: t.ink }}>Reading your delivery</Text>
           <Animated.Text
             style={{
               fontFamily: t.fonts.sans,

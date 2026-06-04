@@ -19,6 +19,31 @@ export default function Icon({ name, size = 24, stroke = '#fff', sw = 1.6, style
         <Path d="M9 10h.01M15 10h.01" strokeWidth={2.2} />
       </G>
     ),
+    play: (
+      <G {...common}>
+        <Path d="M8 5.5v13l11-6.5z" fill={stroke} />
+      </G>
+    ),
+    pause: (
+      <G {...common}>
+        <Rect x="7" y="5" width="3.5" height="14" rx="1" fill={stroke} stroke="none" />
+        <Rect x="13.5" y="5" width="3.5" height="14" rx="1" fill={stroke} stroke="none" />
+      </G>
+    ),
+    trophy: (
+      <G {...common}>
+        <Path d="M7 4h10v3a5 5 0 0 1-10 0z" />
+        <Path d="M7 5H4.5a2.5 2.5 0 0 0 2.5 2.5M17 5h2.5a2.5 2.5 0 0 1-2.5 2.5" />
+        <Path d="M10 12.5h4M12 12.5V16M9 20h6M9.5 20l.5-4h4l.5 4" />
+      </G>
+    ),
+    voice: (
+      <G {...common}>
+        <Rect x="9" y="2.5" width="6" height="11" rx="3" />
+        <Path d="M5 11a7 7 0 0 0 14 0" />
+        <Path d="M12 18v3" />
+      </G>
+    ),
     outfit: (
       <G {...common}>
         <Path d="M8.5 3.5 12 6l3.5-2.5L20 6.5l-2.5 3-1.5-1V20.5h-8V8.5l-1.5 1L4 6.5z" />
@@ -79,6 +104,20 @@ export default function Icon({ name, size = 24, stroke = '#fff', sw = 1.6, style
     close: (
       <G {...common}>
         <Path d="M6 6 18 18M18 6 6 18" />
+      </G>
+    ),
+    trash: (
+      <G {...common}>
+        <Path d="M4 7h16" />
+        <Path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
+        <Path d="M6 7v12a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7" />
+        <Path d="M10 11v6M14 11v6" />
+      </G>
+    ),
+    edit: (
+      <G {...common}>
+        <Path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.83-2.83L5 17.5z" />
+        <Path d="M14 7l3 3" />
       </G>
     ),
     share: (

@@ -4,8 +4,8 @@ import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-s
 
 export default function MaskedText({ text, colors = ['#9b8cff', '#4ad6c2'], style = {} }) {
   const fontSize = style.fontSize || 110;
-  const w = fontSize * 1.4;
-  const h = fontSize * 1.1;
+  const w = fontSize * 1.6;
+  const h = fontSize * 1.3;
   return (
     <Svg width={w} height={h}>
       <Defs>
@@ -19,7 +19,7 @@ export default function MaskedText({ text, colors = ['#9b8cff', '#4ad6c2'], styl
         fontSize={fontSize}
         fontFamily={style.fontFamily}
         x={w / 2}
-        y={h * 0.78}
+        y={h * 0.72}
         textAnchor="middle"
       >
         {text}

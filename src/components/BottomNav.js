@@ -1,4 +1,4 @@
-// BottomNav.js — floating glass tab bar (Aura / You)
+// BottomNav.js — floating glass tab bar (Home / You)
 import React from 'react';
 import { View, Pressable, Text, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -8,7 +8,7 @@ import Icon from './Icon';
 export default function BottomNav({ tab, onTab, bottomInset = 0 }) {
   const t = useTheme();
   const tabs = [
-    { id: 'home', icon: 'home', label: 'Aura' },
+    { id: 'home', icon: 'home', label: 'Home' },
     { id: 'profile', icon: 'user', label: 'You' },
   ];
 

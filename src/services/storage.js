@@ -1,9 +1,10 @@
-// storage.js — persists app state (scans seen, scan count, Pro, history) via AsyncStorage.
+// storage.js — persists app state via AsyncStorage.
+// groups: [{ id, title, context, attempts: [result, ...], ts }]
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORE = 'auracheck_state_v1';
+const STORE = 'audiocoach_state_v1';
 
-const DEFAULT = { seen: false, scanCount: 0, isPro: false, history: [] };
+const DEFAULT = { seen: false, scanCount: 0, isPro: false, profilePic: null, userName: 'User_001', takeTimes: [], groups: [] };
 
 export async function loadState() {
   try {
@@ -17,9 +18,7 @@ export async function loadState() {
 export async function saveState(state) {
   try {
     await AsyncStorage.setItem(STORE, JSON.stringify(state));
-  } catch (e) {
-    // ignore write errors in the prototype
-  }
+  } catch (e) {}
 }
 
 export { DEFAULT as DEFAULT_STATE };

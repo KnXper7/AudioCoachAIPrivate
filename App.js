@@ -1,8 +1,8 @@
-// App.js — AuraCheck AI entry point.
-// Holds the screen state machine, free-scan gating (paywall after 3 scans),
-// persistence, and font loading. Mirrors the design prototype's App() flow.
-import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+// App.js — AudioCoach AI. Voice-only speaking coach with practice GROUPS:
+// each group is one line/speech you rehearse repeatedly; the coach tracks your
+// improvement across attempts. Onboarding once; system/light/dark theming.
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, BackHandler, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -16,17 +16,31 @@ import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif'
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { loadState, saveState, DEFAULT_STATE } from './src/services/storage';
+import {
+  purchasesAvailable,
+  uiAvailable,
+  initPurchases,
+  checkProStatus,
+  onProStatusChange,
+  presentPaywall,
+  paywallResultIsPro,
+  presentCustomerCenter,
+} from './src/services/purchases';
 
 import Onboarding from './src/screens/Onboarding';
 import Dashboard from './src/screens/Dashboard';
-import CameraScreen from './src/screens/CameraScreen';
+import GroupDetail from './src/screens/GroupDetail';
+import VoiceScreen from './src/screens/VoiceScreen';
 import Analyzing from './src/screens/Analyzing';
 import Results from './src/screens/Results';
 import Paywall from './src/screens/Paywall';
 import Profile from './src/screens/Profile';
 import BottomNav from './src/components/BottomNav';
+import ScreenTransition from './src/components/ScreenTransition';
 
-const FREE_SCANS = 3;
+const FREE = 3;              // free takes…
+const FREE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000; // …per rolling 2 days
+const MAX_TAKES_PER_SESSION = 10;
 
 function Root() {
   const t = useTheme();
@@ -35,105 +49,247 @@ function Root() {
   const [st, setSt] = useState(DEFAULT_STATE);
   const [hydrated, setHydrated] = useState(false);
   const [screen, setScreen] = useState('onboarding');
-  const [mode, setMode] = useState('face');
   const [result, setResult] = useState(null);
-  const [pending, setPending] = useState(null);
+  const [readOnly, setReadOnly] = useState(false);
   const [captureUri, setCaptureUri] = useState(null);
+  const [captureCtx, setCaptureCtx] = useState('');
+  const [captureTitle, setCaptureTitle] = useState('');
+  const [captureTx, setCaptureTx] = useState('');
+  const [captureDur, setCaptureDur] = useState(0);
+  const [prevAttempt, setPrevAttempt] = useState(null);
+  const [lockedCtx, setLockedCtx] = useState(null);
+  const [lockedTitle, setLockedTitle] = useState(null);
+  const [pendingGroupId, setPendingGroupId] = useState(null); // null = new group
+  const [viewGroupId, setViewGroupId] = useState(null);
+  const [resumeAfterPay, setResumeAfterPay] = useState(null); // {kind:'new'} | {kind:'group', id} | {kind:'upgrade'}
+  const [upgradeBase, setUpgradeBase] = useState(null); // result being re-analyzed with Pro
 
-  // hydrate persisted state once
   useEffect(() => {
     (async () => {
       const s = await loadState();
       setSt(s);
-      setScreen(s.seen ? 'dashboard' : 'onboarding');
       setHydrated(true);
+      setScreen(s.seen ? 'dashboard' : 'onboarding');
+
+      // RevenueCat: if it's live (dev build + real key), it is the source of truth
+      // for Pro. In Expo Go the native module is absent, so we keep local state.
+      if (purchasesAvailable()) {
+        const ok = await initPurchases();
+        if (ok) {
+          const active = await checkProStatus();
+          setSt((prev) => ({ ...prev, isPro: active }));
+        }
+      }
     })();
   }, []);
 
-  // persist on change (after hydration)
+  // Keep Pro in sync with RevenueCat (renewals, expirations, cross-device).
   useEffect(() => {
-    if (hydrated) saveState(st);
-  }, [st, hydrated]);
+    if (!purchasesAvailable()) return;
+    const unsub = onProStatusChange((active) => setSt((prev) => ({ ...prev, isPro: active })));
+    return unsub;
+  }, []);
 
-  const scansLeft = Math.max(0, FREE_SCANS - st.scanCount);
+  useEffect(() => { if (hydrated) saveState(st); }, [st, hydrated]);
 
-  const startMode = (mo) => {
-    if (!st.isPro && st.scanCount >= FREE_SCANS) {
-      setPending(mo);
-      setScreen('paywall');
-    } else {
-      setMode(mo);
-      setCaptureUri(null);
-      setScreen('camera');
-    }
+  const groupById = (id) => st.groups.find((g) => g.id === id);
+  const recentTakeCount = () => (st.takeTimes || []).filter((ts) => Date.now() - ts < FREE_WINDOW_MS).length;
+  const takesLeft = () => Math.max(0, FREE - recentTakeCount());
+  const gated = () => !st.isPro && takesLeft() <= 0;
+  const goDashboard = useCallback(() => setScreen('dashboard'), []);
+
+  const beginNewGroup = () => {
+    if (gated()) { openPaywall({ kind: 'new' }); return; }
+    setPendingGroupId(null);
+    setPrevAttempt(null);
+    setLockedCtx(null);
+    setLockedTitle(null);
+    setCaptureUri(null);
+    setScreen('voice');
   };
 
-  const onCapture = (uri) => {
+  const recordIntoGroup = (group) => {
+    if (!group) return;
+    if ((group.attempts || []).length >= MAX_TAKES_PER_SESSION) {
+      Alert.alert('Session full', `A session holds up to ${MAX_TAKES_PER_SESSION} takes. Start a new session to keep recording.`);
+      return;
+    }
+    if (gated()) { openPaywall({ kind: 'group', id: group.id }); return; }
+    setPendingGroupId(group.id);
+    setPrevAttempt(group.attempts[group.attempts.length - 1] || null);
+    setLockedCtx(group.context || '');
+    setLockedTitle(group.title || '');
+    setCaptureUri(null);
+    setScreen('voice');
+  };
+
+  const onCapture = (uri, data) => {
+    const d = data || {};
     setCaptureUri(uri || null);
+    setCaptureCtx(d.context || '');
+    setCaptureTitle(d.title || '');
+    setCaptureTx(d.transcript || '');
+    setCaptureDur(d.durationSec || 0);
     setScreen('analyzing');
   };
 
   const onDone = (r) => {
-    setResult(r);
-    setSt((s) => ({ ...s, scanCount: s.scanCount + 1, history: [r, ...s.history].slice(0, 20) }));
+    if (r && r.visible === false) {
+      setScreen('voice');
+      setTimeout(() => Alert.alert("Couldn't hear you clearly", 'Find a quiet spot, hold the phone close, and speak up — then try again.'), 300);
+      return;
+    }
+    setSt((s) => {
+      let groups = s.groups.slice();
+      let gid = pendingGroupId;
+      if (gid) {
+        groups = groups.map((g) => (g.id === gid ? { ...g, attempts: [...g.attempts, { ...r, groupId: gid }].slice(-MAX_TAKES_PER_SESSION) } : g));
+      } else {
+        gid = 'grp_' + Date.now();
+        const title = (captureTitle || '').trim() || r.context || 'Untitled';
+        groups = [{ id: gid, title, context: r.context || '', attempts: [{ ...r, groupId: gid }], ts: Date.now() }, ...groups];
+      }
+      r.groupId = gid;
+      const takeTimes = [...(s.takeTimes || []), Date.now()].filter((ts) => Date.now() - ts < FREE_WINDOW_MS);
+      return { ...s, scanCount: s.scanCount + 1, takeTimes, groups };
+    });
+    setResult({ ...r });
+    setReadOnly(false);
+    setViewGroupId(r.groupId || null);
     setScreen('results');
   };
 
-  const unlock = () => {
+  // Grant Pro locally and continue whatever the user was doing before paying.
+  const applyUnlock = (resume) => {
     setSt((s) => ({ ...s, isPro: true }));
-    if (pending) {
-      setMode(pending);
-      setPending(null);
-      setCaptureUri(null);
-      setScreen('camera');
-    } else {
-      setScreen('dashboard');
-    }
+    if (resume?.kind === 'new') setTimeout(beginNewGroup, 0);
+    else if (resume?.kind === 'group') setTimeout(() => recordIntoGroup(groupById(resume.id)), 0);
+    else if (resume?.kind === 'upgrade' && result) { setUpgradeBase(result); setTimeout(() => setScreen('analyzing'), 0); }
+    else setScreen('dashboard');
   };
 
-  const resetDemo = () => {
-    setSt({ seen: true, scanCount: 0, isPro: false, history: [] });
+  // Used by the custom (Expo Go fallback) Paywall screen.
+  const unlock = () => {
+    const resume = resumeAfterPay;
+    setResumeAfterPay(null);
+    applyUnlock(resume);
+  };
+
+  // The Pro entry point. Prefers RevenueCat's hosted Paywall; falls back to the
+  // in-app Paywall screen when the native UI isn't available (e.g. Expo Go).
+  const openPaywall = async (resume) => {
+    if (uiAvailable()) {
+      const result = await presentPaywall();
+      if (paywallResultIsPro(result)) applyUnlock(resume || null);
+      return; // cancelled / errored → stay put; listener will sync any change
+    }
+    setResumeAfterPay(resume || null);
+    setScreen('paywall');
+  };
+
+  // After upgrading mid-result: re-analyze the same audio with Pro on, then merge
+  // the Pro-only extras (more suggestions, rephrasings, exercises) into the take
+  // the user just recorded — keeping the original score, transcript, and cues.
+  const onUpgradeDone = (r) => {
+    const base = upgradeBase;
+    setUpgradeBase(null);
+    if (!base) { setScreen('results'); return; }
+    const merged = {
+      ...base,
+      isPro: true,
+      suggestions: r && Array.isArray(r.suggestions) && r.suggestions.length ? r.suggestions : base.suggestions,
+      rephrasings: r && Array.isArray(r.rephrasings) ? r.rephrasings : [],
+      exercises: r && Array.isArray(r.exercises) ? r.exercises : [],
+    };
+    setSt((s) => ({
+      ...s,
+      groups: s.groups.map((g) => (g.id === merged.groupId ? { ...g, attempts: g.attempts.map((a) => (a.id === merged.id ? merged : a)) } : g)),
+    }));
+    setResult(merged);
+    setReadOnly(false);
+    setScreen('results');
+  };
+
+  const deleteGroup = (id) => {
+    setSt((s) => ({ ...s, groups: s.groups.filter((g) => g.id !== id) }));
+    setViewGroupId(null);
     setScreen('dashboard');
   };
 
+  const deleteAttempt = (groupId, attemptId) => {
+    const g = groupById(groupId);
+    const lastOne = g && (g.attempts || []).length <= 1; // deleting the only take empties the session
+    setSt((s) => {
+      const groups = s.groups
+        .map((gr) => (gr.id === groupId ? { ...gr, attempts: (gr.attempts || []).filter((a) => a.id !== attemptId) } : gr))
+        .filter((gr) => (gr.attempts || []).length > 0); // drop the session if it has no takes left
+      return { ...s, groups };
+    });
+    if (lastOne) { setViewGroupId(null); setScreen('dashboard'); }
+  };
+
+  // Self-service subscription management (RevenueCat Customer Center).
+  const openCustomerCenter = async () => {
+    if (uiAvailable()) { await presentCustomerCenter(); return; }
+    Alert.alert('Manage subscription', 'Subscription management opens in a full build of the app. In the store, you can manage or cancel anytime from your account settings.');
+  };
+
+  const openGroup = (g) => { setViewGroupId(g.id); setScreen('groupDetail'); };
+  const openAttempt = (att) => { setResult(att); setReadOnly(true); setScreen('results'); };
+  const resetDemo = () => { setSt({ ...DEFAULT_STATE, seen: true }); setScreen('dashboard'); };
+  const setAvatar = (uri) => setSt((s) => ({ ...s, profilePic: uri }));
+  const setUserName = (name) => setSt((s) => ({ ...s, userName: (name && name.trim()) || 'User_001' }));
+
+  useEffect(() => {
+    const onBack = () => {
+      if (screen === 'results') { setScreen(readOnly && viewGroupId && groupById(viewGroupId) ? 'groupDetail' : 'dashboard'); return true; }
+      if (['voice', 'analyzing', 'paywall', 'profile', 'groupDetail'].includes(screen)) { setScreen('dashboard'); return true; }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, [screen, viewGroupId, st.groups, readOnly]);
+
   if (!hydrated) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
+  const curGroup = groupById(viewGroupId);
   let view = null;
   if (screen === 'onboarding')
     view = <Onboarding onStart={() => { setSt((s) => ({ ...s, seen: true })); setScreen('dashboard'); }} />;
   else if (screen === 'dashboard')
-    view = <Dashboard scansLeft={scansLeft} isPro={st.isPro} history={st.history} onMode={startMode} />;
-  else if (screen === 'camera')
-    view = <CameraScreen mode={mode} onClose={() => setScreen('dashboard')} onCapture={onCapture} />;
+    view = <Dashboard isPro={st.isPro} scansLeft={takesLeft()} groups={st.groups} onNew={beginNewGroup} onOpenGroup={openGroup} onRecordInto={recordIntoGroup} />;
+  else if (screen === 'groupDetail')
+    view = <GroupDetail group={curGroup} onBack={goDashboard} onRecordAgain={() => recordIntoGroup(curGroup)} onOpenAttempt={openAttempt} onDeleteGroup={deleteGroup} onDeleteAttempt={deleteAttempt} />;
+  else if (screen === 'voice')
+    view = <VoiceScreen onClose={goDashboard} onCapture={onCapture} lockedContext={lockedCtx} lockedTitle={lockedTitle} />;
   else if (screen === 'analyzing')
-    view = <Analyzing mode={mode} imageUri={captureUri} onDone={onDone} />;
+    view = upgradeBase
+      ? <Analyzing uri={upgradeBase.audioUri} isPro={true} context={upgradeBase.context} durationSec={upgradeBase.durationSec} liveTranscript={upgradeBase.transcript} prev={null} onDone={onUpgradeDone} onFail={() => { setUpgradeBase(null); setScreen('results'); }} />
+      : <Analyzing uri={captureUri} isPro={st.isPro} context={captureCtx} durationSec={captureDur} liveTranscript={captureTx} prev={prevAttempt} onDone={onDone} onFail={() => setScreen('voice')} />;
   else if (screen === 'results')
-    view = <Results result={result} onAgain={() => startMode(result.mode)} onHome={() => setScreen('dashboard')} />;
-  else if (screen === 'paywall')
-    view = <Paywall onClose={() => setScreen('dashboard')} onUnlock={unlock} />;
-  else if (screen === 'profile')
     view = (
-      <Profile
+      <Results
+        result={result}
         isPro={st.isPro}
-        history={st.history}
-        onOpen={(r) => { setResult(r); setScreen('results'); }}
-        onReset={resetDemo}
-        onMode={startMode}
+        readOnly={readOnly}
+        onHome={() => setScreen(readOnly && viewGroupId && groupById(viewGroupId) ? 'groupDetail' : 'dashboard')}
+        onRecordAgain={() => recordIntoGroup(groupById(result.groupId))}
+        onGetPro={() => openPaywall({ kind: 'upgrade' })}
       />
     );
+  else if (screen === 'paywall')
+    view = <Paywall onClose={goDashboard} onUnlock={unlock} usedFree={takesLeft() <= 0} />;
+  else if (screen === 'profile')
+    view = <Profile isPro={st.isPro} groups={st.groups} profilePic={st.profilePic} userName={st.userName} onSetName={setUserName} onSetAvatar={setAvatar} onOpenAttempt={openAttempt} onReset={resetDemo} onNew={beginNewGroup} onGetPro={() => openPaywall(null)} onManageSubscription={openCustomerCenter} />;
 
   const showNav = screen === 'dashboard' || screen === 'profile';
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       <StatusBar style={t.dark ? 'light' : 'dark'} />
-      {view}
+      <ScreenTransition key={screen}>{view}</ScreenTransition>
       {showNav && (
-        <BottomNav
-          tab={screen === 'profile' ? 'profile' : 'home'}
-          onTab={(id) => setScreen(id === 'home' ? 'dashboard' : 'profile')}
-          bottomInset={insets.bottom}
-        />
+        <BottomNav tab={screen === 'profile' ? 'profile' : 'home'} onTab={(id) => setScreen(id === 'home' ? 'dashboard' : 'profile')} bottomInset={insets.bottom} />
       )}
     </View>
   );
@@ -147,7 +303,6 @@ export default function App() {
     HankenGrotesk_700Bold,
     InstrumentSerif_400Regular,
   });
-
   return (
     <SafeAreaProvider>
       <ThemeProvider>

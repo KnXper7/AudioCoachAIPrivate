@@ -1,24 +1,162 @@
-// purchases.js — MOCK RevenueCat layer.
-// The UI calls purchasePro(); the mock resolves true after a short delay so the
-// paywall flow works without native config.
+// purchases.js — RevenueCat in-app purchases (react-native-purchases v8) plus the
+// hosted Paywall and Customer Center (react-native-purchases-ui).
 //
-// 👉 To wire REAL RevenueCat, see AI_INTEGRATION.md ("RevenueCat" section).
-//    Swap these functions for react-native-purchases (Purchases.purchasePackage,
-//    Purchases.getCustomerInfo, etc.). Keep the same async boolean signatures.
+// Safe in Expo Go: those packages are native and absent there, so we detect that
+// (purchasesAvailable()/uiAvailable() === false) and degrade gracefully instead
+// of crashing. Real purchases require an EAS dev build.
+import { Platform } from 'react-native';
+import { REVENUECAT_IOS_KEY, REVENUECAT_ANDROID_KEY, PRO_ENTITLEMENT, PACKAGE_IDS } from '../config';
 
-export const PRO_ENTITLEMENT = 'pro';
-export const MONTHLY_PRODUCT_ID = 'auracheck_pro_monthly'; // $9.99/mo
+// Guarded native requires — never throw at import time in Expo Go.
+let Purchases = null;
+let LOG_LEVEL = null;
+let RevenueCatUI = null;
+let PAYWALL_RESULT = null;
+try {
+  const rc = require('react-native-purchases');
+  Purchases = rc.default;
+  LOG_LEVEL = rc.LOG_LEVEL;
+} catch (e) { Purchases = null; }
+try {
+  const ui = require('react-native-purchases-ui');
+  RevenueCatUI = ui.default;
+  PAYWALL_RESULT = ui.PAYWALL_RESULT;
+} catch (e) { RevenueCatUI = null; }
 
-export function purchasePro() {
-  return new Promise((resolve) => setTimeout(() => resolve(true), 1100));
+let configured = false;
+
+export const purchasesAvailable = () => !!Purchases;
+export const uiAvailable = () => !!RevenueCatUI;
+
+function apiKey() {
+  return Platform.OS === 'ios' ? REVENUECAT_IOS_KEY : REVENUECAT_ANDROID_KEY;
 }
 
-export function restorePurchases() {
-  return new Promise((resolve) => setTimeout(() => resolve(false), 800));
+function hasPro(info) {
+  return !!(info && info.entitlements && info.entitlements.active && info.entitlements.active[PRO_ENTITLEMENT]);
 }
 
-// Returns whether the user currently has Pro. Mock always false on cold start;
-// real implementation reads Purchases.getCustomerInfo().entitlements.active.
-export function checkProStatus() {
-  return Promise.resolve(false);
+// Configure once on app launch. Returns true if RevenueCat is live.
+export async function initPurchases() {
+  if (!Purchases || configured) return configured;
+  const key = apiKey();
+  if (!key || key.includes('PASTE_')) return false;
+  try {
+    if (__DEV__ && LOG_LEVEL) Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    Purchases.configure({ apiKey: key });
+    configured = true;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Subscribe to entitlement changes. RevenueCat pushes updates (renewals,
+// expirations, purchases on other devices). Returns an unsubscribe function.
+export function onProStatusChange(cb) {
+  if (!Purchases) return () => {};
+  const listener = (info) => cb(hasPro(info));
+  Purchases.addCustomerInfoUpdateListener(listener);
+  return () => {
+    try { Purchases.removeCustomerInfoUpdateListener(listener); } catch (e) {}
+  };
+}
+
+// Current Pro state from RevenueCat. False if unavailable/unconfigured.
+export async function checkProStatus() {
+  if (!Purchases || !configured) return false;
+  try {
+    return hasPro(await Purchases.getCustomerInfo());
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function getCustomerInfo() {
+  if (!Purchases || !configured) return null;
+  try { return await Purchases.getCustomerInfo(); } catch (e) { return null; }
+}
+
+// The current offering's packages, keyed by tier when we can match them.
+export async function getOffering() {
+  if (!Purchases || !configured) return null;
+  try {
+    const offerings = await Purchases.getOfferings();
+    return offerings && offerings.current ? offerings.current : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function matchPackage(offering, tier) {
+  if (!offering || !offering.availablePackages) return null;
+  const ids = PACKAGE_IDS[tier] || [];
+  return (
+    offering.availablePackages.find((p) => ids.includes(p.identifier)) ||
+    offering.availablePackages.find((p) => p.packageType && ids.includes(String(p.packageType).toLowerCase())) ||
+    null
+  );
+}
+
+// Buy a specific tier ('lifetime' | 'yearly' | 'monthly'). Resolves true if Pro
+// is active afterward. Throws on real errors; sets e.userCancelled on cancel.
+export async function purchaseTier(tier) {
+  if (!Purchases || !configured) throw new Error('In-app purchases need a dev build (not Expo Go).');
+  const offering = await getOffering();
+  const pkg = matchPackage(offering, tier) || (offering && offering.availablePackages && offering.availablePackages[0]);
+  if (!pkg) throw new Error('No subscription is available right now. Check your RevenueCat offering.');
+  const { customerInfo } = await Purchases.purchasePackage(pkg);
+  return hasPro(customerInfo);
+}
+
+// Default purchase entry (monthly) — kept for the simple paths.
+export async function purchasePro() {
+  return purchaseTier('monthly');
+}
+
+export async function restorePurchases() {
+  if (!Purchases || !configured) throw new Error('Restore needs a dev build (not Expo Go).');
+  return hasPro(await Purchases.restorePurchases());
+}
+
+// ——— Hosted UI (react-native-purchases-ui) ———
+
+// Presents RevenueCat's dashboard-designed Paywall. Returns:
+//   'PURCHASED' | 'RESTORED' | 'CANCELLED' | 'ERROR' | 'NOT_PRESENTED' | null
+// Caller treats PURCHASED/RESTORED as "now Pro".
+export async function presentPaywall() {
+  if (!RevenueCatUI) return null;
+  try {
+    const result = await RevenueCatUI.presentPaywall();
+    return String(result);
+  } catch (e) {
+    return 'ERROR';
+  }
+}
+
+// Presents the paywall only if the user lacks Pro. Same return contract.
+export async function presentPaywallIfNeeded() {
+  if (!RevenueCatUI) return null;
+  try {
+    const result = await RevenueCatUI.presentPaywallIfNeeded({ requiredEntitlementIdentifier: PRO_ENTITLEMENT });
+    return String(result);
+  } catch (e) {
+    return 'ERROR';
+  }
+}
+
+export function paywallResultIsPro(result) {
+  return result === 'PURCHASED' || result === 'RESTORED' ||
+    (PAYWALL_RESULT && (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED));
+}
+
+// Self-service subscription management (manage/cancel, restore, refunds, etc.).
+export async function presentCustomerCenter() {
+  if (!RevenueCatUI) return false;
+  try {
+    await RevenueCatUI.presentCustomerCenter();
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
