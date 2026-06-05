@@ -24,6 +24,7 @@
     },
     "android": {
       "package": "com.audiocoach.ai",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#0b0c12"
       },
