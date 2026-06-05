@@ -42,5 +42,8 @@
   "optionalDependencies": {
     "@expo/ngrok-bin-win32-x64": "2.3.41"
   },
+  "overrides": {
+    "@expo/config-plugins": "~8.0.0"
+  },
   "private": true
 }

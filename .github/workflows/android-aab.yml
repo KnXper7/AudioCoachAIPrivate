@@ -1,0 +1,60 @@
+name: Build Signed AAB (Play Store)
+
+# Manual only — run from the Actions tab when you want a Play-ready bundle.
+on:
+  workflow_dispatch:
+
+jobs:
+  build-aab:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --omit=optional
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Decode upload keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.keystore
+
+      - name: Inject release signing config
+        run: |
+          perl -0777 -pi -e 's/signingConfigs \{/signingConfigs {\n        release {\n            storeFile file(System.getenv("KEYSTORE_PATH"))\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }/' android/app/build.gradle
+          perl -0777 -pi -e 'my $c=0; s/signingConfig signingConfigs\.debug/(++$c==2)?"signingConfig signingConfigs.release":$&/ge' android/app/build.gradle
+          echo "----- signing section after patch -----"
+          grep -n "signingConfig" android/app/build.gradle
+
+      - name: Build signed AAB
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/android/app/upload.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiocoach-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
