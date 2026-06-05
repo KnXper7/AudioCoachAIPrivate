@@ -27,10 +27,14 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install dependencies
-        # Keep the lockfile (pins SDK-51-compatible versions, avoids config-plugin
-        # drift). --omit=optional skips the Windows-only ngrok binary on Linux.
-        run: npm install --legacy-peer-deps --omit=optional
+      - name: Install dependencies (aligned to Expo SDK)
+        # Resolve fresh, then `expo install --fix` pins react-native, react, and all
+        # expo-managed packages to the exact versions for the installed Expo SDK.
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps --omit=optional
+          npx expo install --fix
+          npm install --legacy-peer-deps --omit=optional
 
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install

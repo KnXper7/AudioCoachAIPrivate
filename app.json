@@ -3,6 +3,7 @@
     "name": "AudioCoach AI",
     "slug": "auracheck-ai",
     "version": "1.0.0",
+    "newArchEnabled": false,
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "auracheck",

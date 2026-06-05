@@ -25,8 +25,12 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps --omit=optional
+      - name: Install dependencies (aligned to Expo SDK)
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps --omit=optional
+          npx expo install --fix
+          npm install --legacy-peer-deps --omit=optional
 
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install
