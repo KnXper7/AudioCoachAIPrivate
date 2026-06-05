@@ -28,9 +28,9 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: |
-          rm -f package-lock.json
-          npm install --legacy-peer-deps
+        # Keep the lockfile (pins SDK-51-compatible versions, avoids config-plugin
+        # drift). --omit=optional skips the Windows-only ngrok binary on Linux.
+        run: npm install --legacy-peer-deps --omit=optional
 
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install
