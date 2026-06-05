@@ -23,7 +23,7 @@
       }
     },
     "android": {
-      "package": "com.auracheck.ai",
+      "package": "com.audiocoach.ai",
       "adaptiveIcon": {
         "backgroundColor": "#0b0c12"
       },
