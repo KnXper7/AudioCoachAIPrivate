@@ -118,8 +118,11 @@ export const aiService = {
       body: JSON.stringify({ audio: audioB64, audioMime: mimeFor(uri), context: ctx, isPro }),
     });
     if (!res.ok) {
-      let detail = '';
-      try { detail = (await res.json()).detail || ''; } catch (e) {}
+      let detail = '', overloaded = res.status === 503;
+      try { const j = await res.json(); detail = j.detail || ''; overloaded = overloaded || !!j.overloaded; } catch (e) {}
+      if (overloaded) {
+        throw new Error('The coach is busy right now — lots of people are recording. Give it a few seconds and try again.');
+      }
       throw new Error(`Coach backend error (${res.status})${detail ? ': ' + String(detail).slice(0, 140) : ''}`);
     }
     let data;

@@ -82,14 +82,38 @@ export default {
 
       const parts = [{ text: prompt }];
       if (audio) parts.push({ inline_data: { mime_type: audioMime || 'audio/mp4', data: audio } });
+      const body = JSON.stringify({ contents: [{ parts }], generationConfig: { temperature: 0.8, responseMimeType: 'application/json' } });
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }], generationConfig: { temperature: 0.8, responseMimeType: 'application/json' } }) }
-      );
-      if (!res.ok) {
-        const t = await res.text();
-        return new Response(JSON.stringify({ error: 'gemini', detail: t.slice(0, 300) }), { status: 502, headers: { ...cors, 'Content-Type': 'application/json' } });
+      // Smooth over usage spikes: retry transient errors (429 rate-limit / 503
+      // overloaded / 500) with exponential backoff, and fall back to a lighter,
+      // higher-availability model if the primary stays overloaded.
+      const MODELS = [GEMINI_MODEL, 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+      const TRANSIENT = new Set([429, 500, 503]);
+      let res, lastDetail = '';
+      modelLoop:
+      for (const model of MODELS) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+          );
+          if (res.ok) break modelLoop;
+          lastDetail = (await res.text()).slice(0, 300);
+          if (TRANSIENT.has(res.status)) {
+            // back off 0.5s, 1s, 2s before retrying this model
+            await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
+            continue;
+          }
+          break; // non-transient (e.g. 400/403) — move to the next model
+        }
+      }
+      if (!res || !res.ok) {
+        const code = res ? res.status : 0;
+        const overloaded = code === 429 || code === 503;
+        return new Response(
+          JSON.stringify({ error: 'gemini', overloaded, detail: lastDetail || 'request failed' }),
+          { status: overloaded ? 503 : 502, headers: { ...cors, 'Content-Type': 'application/json' } }
+        );
       }
       const gj = await res.json();
       const text = gj?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';

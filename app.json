@@ -12,6 +12,11 @@
       "backgroundColor": "#0b0c12",
       "resizeMode": "contain"
     },
+    "androidNavigationBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#0b0c12"
+    },
+    "backgroundColor": "#0b0c12",
     "assetBundlePatterns": [
       "**/*"
     ],

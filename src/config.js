@@ -14,7 +14,7 @@ export const WORKER_URL = 'https://audiocoach-api.just-tapping.workers.dev';
 // real public key before shipping. If purchases fail with an auth error, you're
 // likely using the wrong key type (use the PUBLIC app-specific key, not a secret).
 export const REVENUECAT_IOS_KEY = 'test_WcYGOeoYkHMWGmQTvRpCVlZDbiD';
-export const REVENUECAT_ANDROID_KEY = 'test_WcYGOeoYkHMWGmQTvRpCVlZDbiD';
+export const REVENUECAT_ANDROID_KEY = 'goog_sQjqjpuKtzvPVbcCCbHLXAkqdQK';
 
 // Entitlement identifier — must EXACTLY match the identifier of the entitlement
 // you created in RevenueCat (Project → Entitlements). Display name can be
