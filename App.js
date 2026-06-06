@@ -30,6 +30,7 @@ import {
   paywallResultIsPro,
   presentCustomerCenter,
 } from './src/services/purchases';
+import { cloudConfigured, initCloud, ensureProfile, claimUsername, recordPurchase, syncPro } from './src/services/cloud';
 
 import Onboarding from './src/screens/Onboarding';
 import Dashboard from './src/screens/Dashboard';
@@ -84,6 +85,15 @@ function Root() {
           // Only override stored Pro when we got a real answer (true/false).
           // null = couldn't reach RevenueCat → keep whatever was saved locally.
           if (active !== null) setSt((prev) => ({ ...prev, isPro: active }));
+        }
+      }
+
+      // Cloud: anonymous account + globally-unique username. Off until configured.
+      if (cloudConfigured()) {
+        const uid = await initCloud();
+        if (uid) {
+          const profile = await ensureProfile();
+          if (profile && profile.username) setSt((prev) => ({ ...prev, userName: profile.username }));
         }
       }
     })();
@@ -175,6 +185,8 @@ function Root() {
   // Grant Pro locally and continue whatever the user was doing before paying.
   const applyUnlock = (resume) => {
     setSt((s) => ({ ...s, isPro: true }));
+    recordPurchase({ source: 'paywall' }); // mirror purchase + Pro to the cloud
+    syncPro(true);
     if (resume?.kind === 'new') setTimeout(beginNewGroup, 0);
     else if (resume?.kind === 'group') setTimeout(() => recordIntoGroup(groupById(resume.id)), 0);
     else if (resume?.kind === 'upgrade' && result) { setUpgradeBase(result); setTimeout(() => setScreen('analyzing'), 0); }
@@ -260,7 +272,20 @@ function Root() {
   const openAttempt = (att) => { setResult(att); setReadOnly(true); setScreen('results'); };
   const resetDemo = () => { setSt({ ...DEFAULT_STATE, seen: true }); setScreen('dashboard'); };
   const setAvatar = (uri) => setSt((s) => ({ ...s, profilePic: uri }));
-  const setUserName = (name) => setSt((s) => ({ ...s, userName: (name && name.trim()) || 'User_001' }));
+  // Rename. When the cloud is on, the username must be globally unique — returns
+  // { taken: true } if someone else already has it so the UI can warn.
+  const setUserName = async (name) => {
+    const desired = (name && name.trim()) || 'User_001';
+    try {
+      const saved = await claimUsername(desired); // unique check when cloud is on
+      setSt((s) => ({ ...s, userName: saved }));
+      return { ok: true, name: saved };
+    } catch (e) {
+      if (String(e && e.message) === 'taken') return { ok: false, taken: true };
+      setSt((s) => ({ ...s, userName: desired })); // cloud error → keep local
+      return { ok: true, name: desired };
+    }
+  };
 
   useEffect(() => {
     const onBack = () => {

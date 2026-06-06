@@ -36,8 +36,22 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
   const name = userName || 'User_001';
   const [editName, setEditName] = useState(false);
   const [nameInput, setNameInput] = useState(name);
+  const [savingName, setSavingName] = useState(false);
   const openNameEditor = () => { setNameInput(name); setEditName(true); };
-  const saveName = () => { onSetName && onSetName(nameInput); setEditName(false); };
+  const saveName = async () => {
+    if (!onSetName) { setEditName(false); return; }
+    setSavingName(true);
+    try {
+      const res = await onSetName(nameInput);
+      if (res && res.taken) {
+        Alert.alert('Username taken', 'Someone already has that name. Try a different one.');
+        return; // keep the editor open so they can change it
+      }
+      setEditName(false);
+    } finally {
+      setSavingName(false);
+    }
+  };
   const confirmDeleteAll = () => {
     Alert.alert('Delete all recordings?', "This permanently removes every session and take from this device. This can't be undone.", [
       { text: 'Cancel', style: 'cancel' },
@@ -184,7 +198,7 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
               placeholderTextColor={t.inkFaint}
               style={{ fontFamily: t.fonts.sans, fontSize: 17, color: t.ink, backgroundColor: t.surface, borderWidth: 1, borderColor: t.line, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 }}
             />
-            <Btn size="sm" icon="check" onPress={saveName}>Save name</Btn>
+            <Btn size="sm" icon={savingName ? null : 'check'} onPress={saveName} disabled={savingName}>{savingName ? 'Saving…' : 'Save name'}</Btn>
           </Pressable>
         </Pressable>
       </Modal>

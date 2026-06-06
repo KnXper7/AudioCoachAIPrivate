@@ -28,3 +28,21 @@ export const PACKAGE_IDS = {
   yearly: ['$rc_annual', 'yearly', 'annual'],
   monthly: ['$rc_monthly', 'monthly'],
 };
+
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// ——— Firebase (anonymous accounts + unique usernames + cloud storage) ———
+// From Firebase Console → Project settings → "Your apps" → Web app config.
+// Until you paste real values, the app runs purely locally (no cloud sync).
+const firebaseConfig = {
+  apiKey: "AIzaSyD-xloAbD1d4yB6Ngyl1nAa5iSEEmf5G5c",
+  authDomain: "audiocoach-ai-dbb08.firebaseapp.com",
+  projectId: "audiocoach-ai-dbb08",
+  storageBucket: "audiocoach-ai-dbb08.firebasestorage.app",
+  messagingSenderId: "250281614395",
+  appId: "1:250281614395:web:6fa5f44e49983a6711901e",
+  measurementId: "G-8C1GV1TPMX"
+};
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
