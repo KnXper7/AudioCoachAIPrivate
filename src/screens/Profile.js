@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, Image, TextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, Image, TextInput, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -28,7 +28,7 @@ function Avatar({ value, size }) {
   return <LinearGradient colors={pairs[0]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}><Icon name="user" size={size * 0.5} stroke="#fff" /></LinearGradient>;
 }
 
-export default function Profile({ isPro, groups, profilePic, userName, onSetName, onSetAvatar, onOpenAttempt, onReset, onNew, onGetPro, onManageSubscription }) {
+export default function Profile({ isPro, groups, profilePic, userName, onSetName, onSetAvatar, onOpenAttempt, onReset, onNew, onGetPro, onManageSubscription, onDeleteAllRecordings }) {
   const t = useTheme();
   const { pref, setThemePref } = useTweaks();
   const insets = useSafeAreaInsets();
@@ -38,6 +38,12 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
   const [nameInput, setNameInput] = useState(name);
   const openNameEditor = () => { setNameInput(name); setEditName(true); };
   const saveName = () => { onSetName && onSetName(nameInput); setEditName(false); };
+  const confirmDeleteAll = () => {
+    Alert.alert('Delete all recordings?', "This permanently removes every session and take from this device. This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete all', style: 'destructive', onPress: () => onDeleteAllRecordings && onDeleteAllRecordings() },
+    ]);
+  };
 
   const attempts = (groups || []).flatMap((g) => (g.attempts || []).map((a) => ({ ...a, _sessionTitle: g.title || 'Untitled' })));
   const total = attempts.length;
@@ -145,7 +151,19 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
           })}
         </View>
 
-        <Pressable onPress={onReset} style={{ alignSelf: 'center', marginTop: 26 }}>
+        <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, letterSpacing: 1.5, color: t.inkFaint, textTransform: 'uppercase', marginTop: 30, marginBottom: 12 }}>Your data</Text>
+        <Pressable
+          onPress={total > 0 && onDeleteAllRecordings ? confirmDeleteAll : undefined}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: t.bad + '55', backgroundColor: t.bad + '12', opacity: total > 0 ? (pressed ? 0.85 : 1) : 0.45 })}
+        >
+          <Icon name="trash" size={18} stroke={t.bad} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: t.fonts.sans, fontSize: 15, fontWeight: '700', color: t.bad }}>Delete all recordings</Text>
+            <Text style={{ fontFamily: t.fonts.sans, fontSize: 12.5, color: t.inkDim }}>{total > 0 ? `Removes all ${total} recording${total === 1 ? '' : 's'} from this device` : 'No recordings to delete'}</Text>
+          </View>
+        </Pressable>
+
+        <Pressable onPress={onReset} style={{ alignSelf: 'center', marginTop: 22 }}>
           <Text style={{ fontFamily: t.fonts.sans, fontSize: 13, color: t.inkFaint, textDecorationLine: 'underline' }}>Reset demo (clear recordings & Pro)</Text>
         </Pressable>
       </ScrollView>

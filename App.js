@@ -234,6 +234,15 @@ function Root() {
     Alert.alert('Manage subscription', 'Subscription management opens in a full build of the app. In the store, you can manage or cancel anytime from your account settings.');
   };
 
+  // Delete every recording/session for this user. Local-only today; when a backend
+  // database is added, also delete the user's recordings server-side here (await a
+  // DELETE call before/after clearing local state).
+  const deleteAllRecordings = async () => {
+    // TODO(db): await api.deleteAllRecordings(userId) once a database exists.
+    setSt((s) => ({ ...s, groups: [] }));
+    setViewGroupId(null);
+  };
+
   const openGroup = (g) => { setViewGroupId(g.id); setScreen('groupDetail'); };
   const openAttempt = (att) => { setResult(att); setReadOnly(true); setScreen('results'); };
   const resetDemo = () => { setSt({ ...DEFAULT_STATE, seen: true }); setScreen('dashboard'); };
@@ -280,7 +289,7 @@ function Root() {
   else if (screen === 'paywall')
     view = <Paywall onClose={goDashboard} onUnlock={unlock} usedFree={takesLeft() <= 0} />;
   else if (screen === 'profile')
-    view = <Profile isPro={st.isPro} groups={st.groups} profilePic={st.profilePic} userName={st.userName} onSetName={setUserName} onSetAvatar={setAvatar} onOpenAttempt={openAttempt} onReset={resetDemo} onNew={beginNewGroup} onGetPro={() => openPaywall(null)} onManageSubscription={openCustomerCenter} />;
+    view = <Profile isPro={st.isPro} groups={st.groups} profilePic={st.profilePic} userName={st.userName} onSetName={setUserName} onSetAvatar={setAvatar} onOpenAttempt={openAttempt} onReset={resetDemo} onNew={beginNewGroup} onGetPro={() => openPaywall(null)} onManageSubscription={openCustomerCenter} onDeleteAllRecordings={deleteAllRecordings} />;
 
   const showNav = screen === 'dashboard' || screen === 'profile';
 

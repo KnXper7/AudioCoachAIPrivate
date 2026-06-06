@@ -4,6 +4,7 @@
     "slug": "auracheck-ai",
     "version": "1.0.0",
     "newArchEnabled": false,
+    "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "auracheck",
@@ -25,8 +26,9 @@
     },
     "android": {
       "package": "com.audiocoach.ai",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0b0c12"
       },
       "permissions": [
