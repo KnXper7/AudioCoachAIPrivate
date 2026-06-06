@@ -33,7 +33,13 @@ function apiKey() {
 }
 
 function hasPro(info) {
-  return !!(info && info.entitlements && info.entitlements.active && info.entitlements.active[PRO_ENTITLEMENT]);
+  const active = info && info.entitlements && info.entitlements.active;
+  if (!active) return false;
+  if (active[PRO_ENTITLEMENT]) return true;
+  // Single-tier app: any active entitlement means Pro. This makes us robust to a
+  // small mismatch between PRO_ENTITLEMENT and the dashboard's entitlement id,
+  // so a valid purchase is never lost just because the name doesn't line up.
+  return Object.keys(active).length > 0;
 }
 
 // Configure once on app launch. Returns true if RevenueCat is live.
@@ -62,13 +68,15 @@ export function onProStatusChange(cb) {
   };
 }
 
-// Current Pro state from RevenueCat. False if unavailable/unconfigured.
+// Current Pro state from RevenueCat. Returns true/false when we get a definitive
+// answer, or NULL when we couldn't reach RevenueCat — callers must NOT downgrade
+// a stored Pro state on null (that's what was wiping purchases at launch).
 export async function checkProStatus() {
-  if (!Purchases || !configured) return false;
+  if (!Purchases || !configured) return null;
   try {
     return hasPro(await Purchases.getCustomerInfo());
   } catch (e) {
-    return false;
+    return null;
   }
 }
 

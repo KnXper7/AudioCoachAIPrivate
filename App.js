@@ -2,8 +2,12 @@
 // each group is one line/speech you rehearse repeatedly; the coach tracks your
 // improvement across attempts. Onboarding once; system/light/dark theming.
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, BackHandler, Alert } from 'react-native';
+import { View, BackHandler, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+// Android system navigation bar — optional native module (guarded for Expo Go).
+let NavigationBar = null;
+try { NavigationBar = require('expo-navigation-bar'); } catch (e) { NavigationBar = null; }
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -77,7 +81,9 @@ function Root() {
         const ok = await initPurchases();
         if (ok) {
           const active = await checkProStatus();
-          setSt((prev) => ({ ...prev, isPro: active }));
+          // Only override stored Pro when we got a real answer (true/false).
+          // null = couldn't reach RevenueCat → keep whatever was saved locally.
+          if (active !== null) setSt((prev) => ({ ...prev, isPro: active }));
         }
       }
     })();
@@ -91,6 +97,13 @@ function Root() {
   }, []);
 
   useEffect(() => { if (hydrated) saveState(st); }, [st, hydrated]);
+
+  // Match the Android system navigation bar to the current theme (dark/light).
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !NavigationBar) return;
+    NavigationBar.setButtonStyleAsync(t.dark ? 'light' : 'dark').catch(() => {});
+    NavigationBar.setBackgroundColorAsync(t.bg).catch(() => {});
+  }, [t.dark, t.bg]);
 
   const groupById = (id) => st.groups.find((g) => g.id === id);
   const recentTakeCount = () => (st.takeTimes || []).filter((ts) => Date.now() - ts < FREE_WINDOW_MS).length;

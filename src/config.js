@@ -19,13 +19,12 @@ export const REVENUECAT_ANDROID_KEY = 'goog_sQjqjpuKtzvPVbcCCbHLXAkqdQK';
 // Entitlement identifier — must EXACTLY match the identifier of the entitlement
 // you created in RevenueCat (Project → Entitlements). Display name can be
 // "AudioCoach AI Pro"; the identifier is typically short, e.g. "pro".
-export const PRO_ENTITLEMENT = 'pro';
+export const PRO_ENTITLEMENT = 'audiocoach-pro';
 
 // Package identifiers in your RevenueCat Offering (Project → Offerings).
 // RevenueCat's standard identifiers: '$rc_lifetime', '$rc_annual', '$rc_monthly'.
 // We also accept your custom ids 'lifetime' / 'yearly' / 'monthly'.
 export const PACKAGE_IDS = {
-  lifetime: ['$rc_lifetime', 'lifetime'],
   yearly: ['$rc_annual', 'yearly', 'annual'],
   monthly: ['$rc_monthly', 'monthly'],
 };
