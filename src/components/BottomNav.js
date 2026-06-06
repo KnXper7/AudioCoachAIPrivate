@@ -1,7 +1,8 @@
-// BottomNav.js — floating glass tab bar (Home / You)
+// BottomNav.js — floating glass tab bar (Home / You).
+// Surface renders through <Glass>: real Liquid Glass on iOS 26, blur elsewhere.
 import React from 'react';
 import { View, Pressable, Text, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { Glass } from './Glass';
 import { useTheme } from '../theme/ThemeContext';
 import Icon from './Icon';
 
@@ -32,10 +33,12 @@ export default function BottomNav({ tab, onTab, bottomInset = 0 }) {
         elevation: 12,
       }}
     >
-      <BlurView
+      <Glass
+        radius={26}
+        dark={!!t.dark}
         intensity={Platform.OS === 'ios' ? 40 : 80}
-        tint={t.dark ? 'dark' : 'light'}
-        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', backgroundColor: t.navBg }}
+        isInteractive
+        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' }}
       >
         {tabs.map((tb) => {
           const on = tab === tb.id;
@@ -52,7 +55,7 @@ export default function BottomNav({ tab, onTab, bottomInset = 0 }) {
             </Pressable>
           );
         })}
-      </BlurView>
+      </Glass>
     </View>
   );
 }
