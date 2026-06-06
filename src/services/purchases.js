@@ -85,6 +85,30 @@ export async function getCustomerInfo() {
   try { return await Purchases.getCustomerInfo(); } catch (e) { return null; }
 }
 
+// Details of the user's active subscription (which product, period, renewal),
+// or null if they have none. Used to record WHAT plan they hold in the cloud.
+export async function getActiveSubscription() {
+  if (!Purchases || !configured) return null;
+  try {
+    const info = await Purchases.getCustomerInfo();
+    const active = (info && info.entitlements && info.entitlements.active) || {};
+    const ks = Object.keys(active);
+    if (!ks.length) return null;
+    const ent = active[PRO_ENTITLEMENT] || active[ks[0]];
+    return {
+      entitlement: ent.identifier,
+      productId: ent.productIdentifier,
+      store: ent.store,
+      periodType: ent.periodType,
+      willRenew: ent.willRenew,
+      latestPurchaseDate: ent.latestPurchaseDate,
+      expirationDate: ent.expirationDate || null,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 // The current offering's packages, keyed by tier when we can match them.
 export async function getOffering() {
   if (!Purchases || !configured) return null;

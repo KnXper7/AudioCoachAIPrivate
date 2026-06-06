@@ -176,10 +176,6 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
             <Text style={{ fontFamily: t.fonts.sans, fontSize: 12.5, color: t.inkDim }}>{total > 0 ? `Removes all ${total} recording${total === 1 ? '' : 's'} from this device` : 'No recordings to delete'}</Text>
           </View>
         </Pressable>
-
-        <Pressable onPress={onReset} style={{ alignSelf: 'center', marginTop: 22 }}>
-          <Text style={{ fontFamily: t.fonts.sans, fontSize: 13, color: t.inkFaint, textDecorationLine: 'underline' }}>Reset demo (clear recordings & Pro)</Text>
-        </Pressable>
       </ScrollView>
 
       <Modal visible={editName} transparent animationType="fade" onRequestClose={() => setEditName(false)}>
