@@ -45,6 +45,20 @@ function liquidAvailable() {
 
 export const isLiquidGlass = liquidAvailable;
 
+// One-time diagnostic so you can see in the Metro logs which tier is rendering.
+let _logged = false;
+function logTierOnce() {
+  if (_logged) return;
+  _logged = true;
+  try {
+    console.log(
+      '[Glass] package loaded:', !!GE,
+      '| liquid glass available:', liquidAvailable(),
+      '| platform:', Platform.OS, String(Platform.Version)
+    );
+  } catch (e) {}
+}
+
 export function Glass({
   children,
   style,
@@ -57,6 +71,7 @@ export function Glass({
   ...rest
 }) {
   const shape = radius != null ? { borderRadius: radius } : null;
+  logTierOnce();
 
   // Tier 1 — real Apple Liquid Glass.
   if (liquidAvailable() && GE.GlassView) {

@@ -1,7 +1,11 @@
-// Btn.js — pill button with solid (gradient) / ghost / quiet variants
+// Btn.js — pill button. Variants:
+//   solid → indigo gradient (primary CTA)
+//   ghost → Liquid Glass pill on iOS 26 (blur glass elsewhere)
+//   quiet → transparent text button
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Glass } from './Glass';
 import { useTheme } from '../theme/ThemeContext';
 import Icon from './Icon';
 
@@ -30,6 +34,29 @@ export default function Btn({ children, onPress, variant = 'solid', size = 'lg',
 
   const pad = { paddingVertical: big ? 17 : 12, paddingHorizontal: big ? 22 : 18 };
   const radius = { borderRadius: 999 };
+  const center = { alignItems: 'center', justifyContent: 'center' };
+
+  let surface;
+  if (variant === 'solid') {
+    surface = (
+      <LinearGradient colors={[t.accentA, t.accentB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[radius, pad, center]}>
+        {inner}
+      </LinearGradient>
+    );
+  } else if (variant === 'ghost') {
+    // Liquid Glass pill (the iOS 26 look) with blur fallback.
+    surface = (
+      <Glass radius={999} dark={!!t.dark} isInteractive style={[pad, center, { borderWidth: 1, borderColor: t.line }]}>
+        {inner}
+      </Glass>
+    );
+  } else {
+    surface = (
+      <View style={[radius, pad, center, { backgroundColor: 'transparent' }]}>
+        {inner}
+      </View>
+    );
+  }
 
   return (
     <Pressable
@@ -40,32 +67,7 @@ export default function Btn({ children, onPress, variant = 'solid', size = 'lg',
         style,
       ]}
     >
-      {variant === 'solid' ? (
-        <LinearGradient
-          colors={[t.accentA, t.accentB]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[radius, pad, { alignItems: 'center', justifyContent: 'center' }]}
-        >
-          {inner}
-        </LinearGradient>
-      ) : (
-        <View
-          style={[
-            radius,
-            pad,
-            {
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: variant === 'ghost' ? t.surface : 'transparent',
-              borderWidth: variant === 'ghost' ? 1 : 0,
-              borderColor: t.line,
-            },
-          ]}
-        >
-          {inner}
-        </View>
-      )}
+      {surface}
     </Pressable>
   );
 }

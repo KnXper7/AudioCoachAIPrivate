@@ -2,7 +2,8 @@
 // The Gemini key lives on the Worker as a secret; the device only knows WORKER_URL.
 // The device reads the audio, POSTs it to the Worker, then applies the length
 // adjustment, score clamps, and field sanitization to whatever the model returns.
-import * as FileSystem from 'expo-file-system';
+// SDK 54 moved readAsStringAsync / EncodingType to the legacy entry point.
+import * as FileSystem from 'expo-file-system/legacy';
 import { tierFor } from '../theme/theme';
 import { WORKER_URL } from '../config';
 
