@@ -29,8 +29,9 @@ import {
   presentPaywall,
   paywallResultIsPro,
   presentCustomerCenter,
+  getActiveSubscription,
 } from './src/services/purchases';
-import { cloudConfigured, initCloud, ensureProfile, claimUsername, recordPurchase, syncPro } from './src/services/cloud';
+import { cloudConfigured, initCloud, ensureProfile, claimUsername, recordPurchase, syncPro, syncSubscription } from './src/services/cloud';
 
 import Onboarding from './src/screens/Onboarding';
 import Dashboard from './src/screens/Dashboard';
@@ -94,6 +95,8 @@ function Root() {
         if (uid) {
           const profile = await ensureProfile();
           if (profile && profile.username) setSt((prev) => ({ ...prev, userName: profile.username }));
+          // Refresh the stored subscription (which plan, or none) every launch.
+          if (purchasesAvailable()) syncSubscription(await getActiveSubscription());
         }
       }
     })();
@@ -185,8 +188,11 @@ function Root() {
   // Grant Pro locally and continue whatever the user was doing before paying.
   const applyUnlock = (resume) => {
     setSt((s) => ({ ...s, isPro: true }));
-    recordPurchase({ source: 'paywall' }); // mirror purchase + Pro to the cloud
-    syncPro(true);
+    // Mirror the purchase + which plan to the cloud.
+    getActiveSubscription().then((sub) => {
+      recordPurchase({ source: 'paywall', ...(sub || {}) });
+      syncSubscription(sub);
+    });
     if (resume?.kind === 'new') setTimeout(beginNewGroup, 0);
     else if (resume?.kind === 'group') setTimeout(() => recordIntoGroup(groupById(resume.id)), 0);
     else if (resume?.kind === 'upgrade' && result) { setUpgradeBase(result); setTimeout(() => setScreen('analyzing'), 0); }

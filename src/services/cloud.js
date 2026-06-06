@@ -116,6 +116,20 @@ export async function syncPro(isPro) {
   } catch (e) {}
 }
 
+// Store the CURRENT subscription (which plan / renewal) on the user doc. Pass
+// null when there's no active subscription. Overwrites the single "subscription"
+// field so the user record always reflects their current plan.
+export async function syncSubscription(sub) {
+  if (!ready || !auth.currentUser) return;
+  try {
+    await M.fs.setDoc(
+      M.fs.doc(db, 'users', auth.currentUser.uid),
+      { isPro: !!sub, subscription: sub || null },
+      { merge: true }
+    );
+  } catch (e) {}
+}
+
 // Append a purchase record (and mark Pro).
 export async function recordPurchase(entry) {
   if (!ready || !auth.currentUser) return;
