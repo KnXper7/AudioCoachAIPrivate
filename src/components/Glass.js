@@ -1,20 +1,19 @@
-// Glass.js — minimal, documentation-faithful Liquid Glass helpers.
+// Glass.js — Liquid Glass helpers (documentation-faithful).
 //
-// Philosophy: use the REAL native glass (expo-glass-effect's GlassView) only on
-// iOS 26. Anywhere a native glass fit doesn't make sense, callers simply render
-// their original (Android) design. No blur tiers, no hand-clipped surfaces —
-// those caused the square/clipping/hidden-text bugs.
+// KEY FIX: GlassView does NOT size itself to its children. So we render a normal
+// sized View that clips to a pill/circle (borderRadius + overflow hidden), with
+// the GlassView as an absolute-fill layer BEHIND the content. That guarantees:
+//   • the element actually has size and shows up,
+//   • the glass material is visible,
+//   • a true pill / circle shape (never a rounded rectangle).
 //
-// Per Expo docs, GlassView honours `borderRadius` in its own style (capsule via
-// 999, circle via size/2), and supports `glassEffectStyle` ('regular'|'clear'),
-// `tintColor`, and `isInteractive`.
+// Real glass only on iOS 26; otherwise callers render their original design.
 import React from 'react';
-import { View, Pressable, Platform } from 'react-native';
+import { View, Pressable, Platform, StyleSheet } from 'react-native';
 
 let GE = null;
 try { GE = require('expo-glass-effect'); } catch (e) { GE = null; }
 
-// True only when real Apple Liquid Glass is available (iOS 26, built w/ Xcode 26).
 export function isLiquidGlass() {
   if (!GE || Platform.OS !== 'ios') return false;
   try {
@@ -24,29 +23,40 @@ export function isLiquidGlass() {
   return false;
 }
 
-// The raw native GlassView (or null if the package isn't installed).
 export const NativeGlass = GE ? GE.GlassView : null;
 
-// GlassCircle — a circular native glass button (close, play, camera, etc.).
-// iOS 26 → real GlassView circle; otherwise a plain circle styled by
-// `fallbackStyle` so the off-iOS look is exactly your original design.
+// GlassFill — the glass material as an absolute-fill background layer.
+export function GlassFill({ tint, clear = false }) {
+  if (!NativeGlass) return null;
+  return (
+    <NativeGlass
+      style={StyleSheet.absoluteFill}
+      glassEffectStyle={clear ? 'clear' : 'regular'}
+      tintColor={tint}
+    />
+  );
+}
+
+// GlassCircle — a visible circular glass button (close X, play, etc.).
 export function GlassCircle({
   size = 40,
   onPress,
   children,
   tint,
-  clear = true,
+  clear = false,
   style,
   fallbackStyle,
   disabled,
   hitSlop,
 }) {
-  const base = { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' };
+  const glass = isLiquidGlass() && NativeGlass;
+  const base = { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
 
-  const surface = (isLiquidGlass() && NativeGlass) ? (
-    <NativeGlass style={[base, style]} glassEffectStyle={clear ? 'clear' : 'regular'} tintColor={tint} isInteractive>
+  const surface = glass ? (
+    <View style={[base, style]}>
+      <GlassFill tint={tint} clear={clear} />
       {children}
-    </NativeGlass>
+    </View>
   ) : (
     <View style={[base, fallbackStyle, style]}>{children}</View>
   );

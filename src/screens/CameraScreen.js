@@ -137,7 +137,7 @@ export default function CameraScreen({ mode, onClose, onCapture }) {
 
       {/* top bar */}
       <View style={{ position: 'absolute', top: insets.top + 12, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 5 }}>
-        <GlassCircle size={40} onPress={onClose} clear dark fallbackStyle={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
+        <GlassCircle size={40} onPress={onClose} clear={false} fallbackStyle={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
           <Icon name="close" size={20} stroke="#fff" />
         </GlassCircle>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 16, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' }}>
@@ -174,7 +174,7 @@ export default function CameraScreen({ mode, onClose, onCapture }) {
           <LinearGradient colors={[t.accentA, t.accentB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 62, height: 62, borderRadius: 999 }} />
         </Pressable>
 
-        <GlassCircle size={50} onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} clear dark fallbackStyle={{ borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.1)' }}>
+        <GlassCircle size={50} onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} clear={false} fallbackStyle={{ borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.1)' }}>
           <Icon name="flip" size={22} stroke="#fff" />
         </GlassCircle>
       </View>

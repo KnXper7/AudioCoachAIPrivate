@@ -74,7 +74,7 @@ export default function Paywall({ onClose, onUnlock, usedFree }) {
 
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 24, paddingBottom: insets.bottom + 24, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View style={{ alignSelf: 'flex-end' }}>
-          <GlassCircle size={38} onPress={onClose} clear dark={!!t.dark} fallbackStyle={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}>
+          <GlassCircle size={38} onPress={onClose} clear={false} fallbackStyle={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}>
             <Icon name="close" size={19} stroke={t.inkDim} />
           </GlassCircle>
         </View>

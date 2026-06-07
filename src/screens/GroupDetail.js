@@ -5,6 +5,7 @@ import Screen from '../components/Screen';
 import Card from '../components/Card';
 import Icon from '../components/Icon';
 import Btn from '../components/Btn';
+import { GlassCircle } from '../components/Glass';
 import { useTheme } from '../theme/ThemeContext';
 
 const fmtDate = (ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -38,9 +39,13 @@ export default function GroupDetail({ group, onBack, onRecordAgain, onOpenAttemp
     <Screen>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: insets.bottom + 30 }} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <Pressable onPress={onBack} hitSlop={10}><Icon name="back" size={22} stroke={t.ink} /></Pressable>
+          <GlassCircle size={38} onPress={onBack} hitSlop={10} fallbackStyle={{ backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }}>
+            <Icon name="back" size={20} stroke={t.ink} />
+          </GlassCircle>
           <Text style={{ fontFamily: t.fonts.sans, fontSize: 13, fontWeight: '600', color: t.inkDim }}>Practice group</Text>
-          <Pressable onPress={confirmDeleteGroup} hitSlop={10}><Icon name="trash" size={20} stroke={t.inkDim} /></Pressable>
+          <GlassCircle size={38} onPress={confirmDeleteGroup} hitSlop={10} fallbackStyle={{ backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }}>
+            <Icon name="trash" size={18} stroke={t.inkDim} />
+          </GlassCircle>
         </View>
 
         <Text style={{ fontFamily: t.fonts.serif, fontSize: 30, lineHeight: 38, color: t.ink, includeFontPadding: false }}>{group.title || 'Untitled'}</Text>

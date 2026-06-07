@@ -1,12 +1,14 @@
-// Btn.js — pill button.
-//   PRIMARY (solid): prominent glass — bold label on a tinted glass capsule, no
-//     gradient, no icon. iOS 26 → tinted GlassView; otherwise a flat accent
-//     capsule (always clearly visible).
-//   GHOST (secondary): clear glass capsule (iOS 26) / bordered surface otherwise.
+// Btn.js — pill button (always pill shape, never a rounded rectangle).
+//   PRIMARY (solid): prominent glass — bold label on a tinted glass pill, no
+//     gradient, no icon. iOS 26 → tinted GlassView fill; else flat accent pill.
+//   GHOST (secondary): clear glass pill (iOS 26) / bordered surface pill.
 //   QUIET: plain text button.
+//
+// Glass is rendered as an absolute-fill layer inside a sized, clipped pill so it
+// always shows up at the right size and shape.
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { isLiquidGlass, NativeGlass } from './Glass';
+import { isLiquidGlass, NativeGlass, GlassFill } from './Glass';
 import { useTheme } from '../theme/ThemeContext';
 import Icon from './Icon';
 
@@ -34,31 +36,29 @@ export default function Btn({ children, onPress, variant = 'solid', size = 'lg',
   );
 
   const pad = { paddingVertical: big ? 17 : 12, paddingHorizontal: big ? 22 : 18 };
-  const radius = { borderRadius: 999 };
-  const center = { alignItems: 'center', justifyContent: 'center' };
+  const pill = { borderRadius: 999, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
 
   let surface;
   if (variant === 'solid') {
-    // Prominent glass — tinted, more opaque feel; no gradient.
     surface = glass ? (
-      <NativeGlass style={[radius, pad, center]} glassEffectStyle="regular" tintColor={t.accent} isInteractive>
+      <View style={[pill, pad]}>
+        <GlassFill tint={t.accent} clear={false} />
         {inner}
-      </NativeGlass>
+      </View>
     ) : (
-      <View style={[radius, pad, center, { backgroundColor: t.accent }]}>{inner}</View>
+      <View style={[pill, pad, { backgroundColor: t.accent }]}>{inner}</View>
     );
   } else if (variant === 'ghost') {
     surface = glass ? (
-      <NativeGlass style={[radius, pad, center]} glassEffectStyle="clear" isInteractive>
-        {inner}
-      </NativeGlass>
-    ) : (
-      <View style={[radius, pad, center, { backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }]}>
+      <View style={[pill, pad, { borderWidth: 1, borderColor: t.line }]}>
+        <GlassFill clear />
         {inner}
       </View>
+    ) : (
+      <View style={[pill, pad, { backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }]}>{inner}</View>
     );
   } else {
-    surface = <View style={[radius, pad, center, { backgroundColor: 'transparent' }]}>{inner}</View>;
+    surface = <View style={[pill, pad]}>{inner}</View>;
   }
 
   return (
