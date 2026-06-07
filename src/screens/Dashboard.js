@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
 import Card from '../components/Card';
 import Icon from '../components/Icon';
-import { Glass, isLiquidGlass } from '../components/Glass';
 import { useTheme } from '../theme/ThemeContext';
 
 const fmtDate = (ts) => {
@@ -117,50 +116,26 @@ export default function Dashboard({ isPro, scansLeft, groups, onNew, onOpenGroup
           <Pressable onPress={() => {}} style={{ backgroundColor: t.elevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: insets.bottom + 22, borderWidth: 1, borderColor: t.line, maxHeight: '75%' }}>
             <Text style={{ fontFamily: t.fonts.serif, fontSize: 24, color: t.ink, marginBottom: 4 }}>Record into…</Text>
             <Text style={{ fontFamily: t.fonts.sans, fontSize: 13, color: t.inkDim, marginBottom: 16 }}>Add a take to a session to track your progress, or start fresh.</Text>
-            <Pressable onPress={() => { setPicker(false); onNew(); }} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1, marginBottom: 12 })}>
-              {(() => {
-                const nsInner = (
-                  <>
-                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: t.accentA, alignItems: 'center', justifyContent: 'center' }}><Icon name="spark" size={20} stroke={t.onAccent} /></View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: t.fonts.sans, fontSize: 15.5, fontWeight: '700', color: t.ink }}>New session</Text>
-                      <Text style={{ fontFamily: t.fonts.sans, fontSize: 12.5, color: t.inkDim }}>A new line, pitch, or speech</Text>
-                    </View>
-                  </>
-                );
-                const row = { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderWidth: 1, borderColor: t.accentA };
-                return isLiquidGlass() ? (
-                  <Glass radius={16} tint={t.accentA} clear={false} dark={!!t.dark} style={row}>{nsInner}</Glass>
-                ) : (
-                  <View style={[row, { borderRadius: 16, backgroundColor: t.accentA + '14' }]}>{nsInner}</View>
-                );
-              })()}
+            <Pressable onPress={() => { setPicker(false); onNew(); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: t.accentA, backgroundColor: t.accentA + '14', marginBottom: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: t.accentA, alignItems: 'center', justifyContent: 'center' }}><Icon name="spark" size={20} stroke={t.onAccent} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: t.fonts.sans, fontSize: 15.5, fontWeight: '700', color: t.ink }}>New session</Text>
+                <Text style={{ fontFamily: t.fonts.sans, fontSize: 12.5, color: t.inkDim }}>A new line, pitch, or speech</Text>
+              </View>
             </Pressable>
             <Text style={{ fontFamily: t.fonts.sans, fontSize: 11.5, letterSpacing: 1.2, color: t.inkFaint, textTransform: 'uppercase', marginBottom: 8 }}>Add to existing</Text>
             <ScrollView style={{ maxHeight: 260 }}>
               <View style={{ gap: 8 }}>
-                {groups.map((g) => {
-                  const exInner = (
-                    <>
-                      <Icon name="voice" size={18} stroke={t.accentA} />
-                      <View style={{ flex: 1 }}>
-                        <Text numberOfLines={1} style={{ fontFamily: t.fonts.sans, fontSize: 14.5, fontWeight: '600', color: t.ink }}>{g.title || 'Untitled'}</Text>
-                        <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, color: t.inkDim }}>{(g.attempts || []).length} take{(g.attempts || []).length === 1 ? '' : 's'} · next take compares to your last</Text>
-                      </View>
-                      <Icon name="chevron" size={16} stroke={t.inkFaint} />
-                    </>
-                  );
-                  const row = { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderWidth: 1, borderColor: t.line };
-                  return (
-                    <Pressable key={g.id} onPress={() => { setPicker(false); onRecordInto(g); }} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
-                      {isLiquidGlass() ? (
-                        <Glass radius={14} clear dark={!!t.dark} style={row}>{exInner}</Glass>
-                      ) : (
-                        <View style={[row, { borderRadius: 14, backgroundColor: t.surface }]}>{exInner}</View>
-                      )}
-                    </Pressable>
-                  );
-                })}
+                {groups.map((g) => (
+                  <Pressable key={g.id} onPress={() => { setPicker(false); onRecordInto(g); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}>
+                    <Icon name="voice" size={18} stroke={t.accentA} />
+                    <View style={{ flex: 1 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: t.fonts.sans, fontSize: 14.5, fontWeight: '600', color: t.ink }}>{g.title || 'Untitled'}</Text>
+                      <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, color: t.inkDim }}>{(g.attempts || []).length} take{(g.attempts || []).length === 1 ? '' : 's'} · next take compares to your last</Text>
+                    </View>
+                    <Icon name="chevron" size={16} stroke={t.inkFaint} />
+                  </Pressable>
+                ))}
               </View>
             </ScrollView>
           </Pressable>
