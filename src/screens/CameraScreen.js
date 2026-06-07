@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import Btn from '../components/Btn';
+import { GlassCircle } from '../components/Glass';
 import Placeholder from '../components/Placeholder';
 import { useTheme } from '../theme/ThemeContext';
 import { MODE_META } from '../services/aiService';
@@ -136,9 +137,9 @@ export default function CameraScreen({ mode, onClose, onCapture }) {
 
       {/* top bar */}
       <View style={{ position: 'absolute', top: insets.top + 12, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 5 }}>
-        <Pressable onPress={onClose} style={{ width: 40, height: 40, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+        <GlassCircle size={40} onPress={onClose} clear={false} fallbackStyle={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
           <Icon name="close" size={20} stroke="#fff" />
-        </Pressable>
+        </GlassCircle>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 16, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' }}>
           <Icon name={mode} size={17} stroke="#fff" />
           <Text style={{ fontFamily: t.fonts.sans, fontSize: 14, fontWeight: '600', color: '#fff' }}>{m.title}</Text>
@@ -173,9 +174,9 @@ export default function CameraScreen({ mode, onClose, onCapture }) {
           <LinearGradient colors={[t.accentA, t.accentB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 62, height: 62, borderRadius: 999 }} />
         </Pressable>
 
-        <Pressable onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} style={{ width: 50, height: 50, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+        <GlassCircle size={50} onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} clear={false} fallbackStyle={{ borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.1)' }}>
           <Icon name="flip" size={22} stroke="#fff" />
-        </Pressable>
+        </GlassCircle>
       </View>
     </View>
   );

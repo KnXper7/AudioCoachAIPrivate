@@ -1,27 +1,30 @@
-// Btn.js — pill button. Variants:
-//   solid → indigo gradient (primary CTA)
-//   ghost → Liquid Glass pill on iOS 26 (blur glass elsewhere)
-//   quiet → transparent text button
+// Btn.js — pill button (always pill shape, never a rounded rectangle).
+//   PRIMARY (solid): prominent glass — bold label on a tinted glass pill, no
+//     gradient, no icon. iOS 26 → tinted GlassView fill; else flat accent pill.
+//   GHOST (secondary): clear glass pill (iOS 26) / bordered surface pill.
+//   QUIET: plain text button.
+//
+// Glass is rendered as an absolute-fill layer inside a sized, clipped pill so it
+// always shows up at the right size and shape.
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Glass } from './Glass';
+import { isLiquidGlass, NativeGlass, GlassFill } from './Glass';
 import { useTheme } from '../theme/ThemeContext';
 import Icon from './Icon';
 
 export default function Btn({ children, onPress, variant = 'solid', size = 'lg', icon, style, disabled }) {
   const t = useTheme();
   const big = size === 'lg';
+  const glass = isLiquidGlass() && NativeGlass;
+  const showIcon = icon && variant !== 'solid'; // prominent buttons carry no icon
 
   const inner = (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
-      {icon ? (
-        <Icon name={icon} size={big ? 20 : 18} stroke={variant === 'solid' ? t.onAccent : t.ink} />
-      ) : null}
+      {showIcon ? <Icon name={icon} size={big ? 20 : 18} stroke={t.ink} /> : null}
       <Text
         style={{
           fontFamily: t.fonts.sans,
-          fontWeight: '600',
+          fontWeight: '700',
           fontSize: big ? 17 : 15,
           letterSpacing: -0.2,
           color: variant === 'solid' ? t.onAccent : variant === 'quiet' ? t.inkDim : t.ink,
@@ -33,29 +36,29 @@ export default function Btn({ children, onPress, variant = 'solid', size = 'lg',
   );
 
   const pad = { paddingVertical: big ? 17 : 12, paddingHorizontal: big ? 22 : 18 };
-  const radius = { borderRadius: 999 };
-  const center = { alignItems: 'center', justifyContent: 'center' };
+  const pill = { borderRadius: 999, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
 
   let surface;
   if (variant === 'solid') {
-    surface = (
-      <LinearGradient colors={[t.accentA, t.accentB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[radius, pad, center]}>
-        {inner}
-      </LinearGradient>
-    );
-  } else if (variant === 'ghost') {
-    // Liquid Glass pill (the iOS 26 look) with blur fallback.
-    surface = (
-      <Glass radius={999} dark={!!t.dark} isInteractive style={[pad, center, { borderWidth: 1, borderColor: t.line }]}>
-        {inner}
-      </Glass>
-    );
-  } else {
-    surface = (
-      <View style={[radius, pad, center, { backgroundColor: 'transparent' }]}>
+    surface = glass ? (
+      <View style={[pill, pad]}>
+        <GlassFill tint={t.accent} clear={false} />
         {inner}
       </View>
+    ) : (
+      <View style={[pill, pad, { backgroundColor: t.accent }]}>{inner}</View>
     );
+  } else if (variant === 'ghost') {
+    surface = glass ? (
+      <View style={[pill, pad, { borderWidth: 1, borderColor: t.line }]}>
+        <GlassFill clear />
+        {inner}
+      </View>
+    ) : (
+      <View style={[pill, pad, { backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }]}>{inner}</View>
+    );
+  } else {
+    surface = <View style={[pill, pad]}>{inner}</View>;
   }
 
   return (

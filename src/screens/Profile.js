@@ -7,6 +7,7 @@ import Screen from '../components/Screen';
 import Card from '../components/Card';
 import Icon from '../components/Icon';
 import Btn from '../components/Btn';
+import { isLiquidGlass, NativeGlass, GlassFill } from '../components/Glass';
 import { useTheme, useTweaks } from '../theme/ThemeContext';
 
 const DEFAULT_AVATARS = [
@@ -168,13 +169,21 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
         <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, letterSpacing: 1.5, color: t.inkFaint, textTransform: 'uppercase', marginTop: 30, marginBottom: 12 }}>Your data</Text>
         <Pressable
           onPress={total > 0 && onDeleteAllRecordings ? confirmDeleteAll : undefined}
-          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: t.bad + '55', backgroundColor: t.bad + '12', opacity: total > 0 ? (pressed ? 0.85 : 1) : 0.45 })}
+          disabled={total === 0}
+          style={({ pressed }) => ({ opacity: total > 0 ? (pressed ? 0.9 : 1) : 0.45 })}
         >
-          <Icon name="trash" size={18} stroke={t.bad} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: t.fonts.sans, fontSize: 15, fontWeight: '700', color: t.bad }}>Delete all recordings</Text>
-            <Text style={{ fontFamily: t.fonts.sans, fontSize: 12.5, color: t.inkDim }}>{total > 0 ? `Removes all ${total} recording${total === 1 ? '' : 's'} from this device` : 'No recordings to delete'}</Text>
-          </View>
+          {(() => {
+            const pillStyle = { borderRadius: 999, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
+            const label = <Text style={{ fontFamily: t.fonts.sans, fontSize: 16, fontWeight: '700', color: '#fff' }}>Delete all recordings</Text>;
+            return (isLiquidGlass() && NativeGlass) ? (
+              <View style={pillStyle}>
+                <GlassFill tint={t.bad} clear={false} />
+                {label}
+              </View>
+            ) : (
+              <View style={[pillStyle, { backgroundColor: t.bad }]}>{label}</View>
+            );
+          })()}
         </Pressable>
       </ScrollView>
 

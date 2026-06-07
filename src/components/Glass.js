@@ -1,40 +1,20 @@
-// Glass.js — "Liquid Glass" wrapper with a real glassy fallback that works TODAY.
+// Glass.js — Liquid Glass helpers (documentation-faithful).
 //
-// THREE-TIER STRATEGY (best available wins, nothing ever crashes):
-//   1. iOS 26 + expo-glass-effect installed → real Apple Liquid Glass.
-//   2. Otherwise, if expo-blur is available (you have it) → frosted BlurView glass.
-//      Works right now on SDK 52, on Android, and on older iOS.
-//   3. Last resort → a quiet translucent <View>.
+// KEY FIX: GlassView does NOT size itself to its children. So we render a normal
+// sized View that clips to a pill/circle (borderRadius + overflow hidden), with
+// the GlassView as an absolute-fill layer BEHIND the content. That guarantees:
+//   • the element actually has size and shows up,
+//   • the glass material is visible,
+//   • a true pill / circle shape (never a rounded rectangle).
 //
-// You do NOT need to upgrade Expo to use this. Ship it on SDK 52 today and it
-// renders blur-glass; if you later move to SDK 54 + iOS 26 it auto-upgrades to
-// true Liquid Glass with no code change.
-//
-// USAGE
-//   import { Glass, GlassGroup } from '../components/Glass';
-//   <Glass style={styles.card} radius={20} tint={theme.accent}>...</Glass>
-//
-// PROPS (Glass)
-//   style          any View style (width/height/padding/borderRadius live here)
-//   radius         convenience corner radius (number)
-//   tint           optional tint/accent color string
-//   interactive    bool — springy press reaction on real Liquid Glass (default true)
-//   clear          bool — more transparent "clear" glass (default false)
-//   intensity      blur strength for the BlurView fallback, 0–100 (default 40)
-//   dark           bool — force dark blur tint (default true; set false in light mode)
-
+// Real glass only on iOS 26; otherwise callers render their original design.
 import React from 'react';
-import { View, Platform, StyleSheet } from 'react-native';
+import { View, Pressable, Platform, StyleSheet } from 'react-native';
 
-// Tier 1: real Liquid Glass (only present after an SDK 54 upgrade).
 let GE = null;
 try { GE = require('expo-glass-effect'); } catch (e) { GE = null; }
 
-// Tier 2: expo-blur (already in your dependencies).
-let BLUR = null;
-try { BLUR = require('expo-blur'); } catch (e) { BLUR = null; }
-
-function liquidAvailable() {
+export function isLiquidGlass() {
   if (!GE || Platform.OS !== 'ios') return false;
   try {
     if (typeof GE.isLiquidGlassAvailable === 'function') return GE.isLiquidGlassAvailable();
@@ -43,108 +23,53 @@ function liquidAvailable() {
   return false;
 }
 
-export const isLiquidGlass = liquidAvailable;
+export const NativeGlass = GE ? GE.GlassView : null;
 
-// One-time diagnostic so you can see in the Metro logs which tier is rendering.
-let _logged = false;
-function logTierOnce() {
-  if (_logged) return;
-  _logged = true;
-  try {
-    console.log(
-      '[Glass] package loaded:', !!GE,
-      '| liquid glass available:', liquidAvailable(),
-      '| platform:', Platform.OS, String(Platform.Version)
-    );
-  } catch (e) {}
+// GlassFill — the glass material as an absolute-fill background layer.
+export function GlassFill({ tint, clear = false }) {
+  if (!NativeGlass) return null;
+  return (
+    <NativeGlass
+      style={StyleSheet.absoluteFill}
+      glassEffectStyle={clear ? 'clear' : 'regular'}
+      tintColor={tint}
+    />
+  );
 }
 
-export function Glass({
+// GlassCircle — a visible circular glass button (close X, play, etc.).
+export function GlassCircle({
+  size = 40,
+  onPress,
   children,
-  style,
-  radius,
   tint,
-  interactive = true,
   clear = false,
-  intensity = 40,
-  dark = true,
-  ...rest
+  style,
+  fallbackStyle,
+  disabled,
+  hitSlop,
 }) {
-  const shape = radius != null ? { borderRadius: radius } : null;
-  logTierOnce();
+  const glass = isLiquidGlass() && NativeGlass;
+  const base = { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
 
-  // Tier 1 — real Apple Liquid Glass.
-  if (liquidAvailable() && GE.GlassView) {
-    const GlassView = GE.GlassView;
-    return (
-      <GlassView
-        style={[shape, style]}
-        glassEffectStyle={clear ? 'clear' : 'regular'}
-        tintColor={tint}
-        isInteractive={interactive}
-        {...rest}
-      >
-        {children}
-      </GlassView>
-    );
-  }
+  const surface = glass ? (
+    <View style={[base, style]}>
+      <GlassFill tint={tint} clear={clear} />
+      {children}
+    </View>
+  ) : (
+    <View style={[base, fallbackStyle, style]}>{children}</View>
+  );
 
-  // Tier 2 — frosted BlurView glass (works on SDK 52 + Android, today).
-  if (BLUR && BLUR.BlurView) {
-    const BlurView = BLUR.BlurView;
-    return (
-      <BlurView
-        intensity={intensity}
-        tint={dark ? 'dark' : 'light'}
-        // overflow:hidden is required so the blur respects rounded corners.
-        style={[{ overflow: 'hidden' }, shape, style]}
-        {...rest}
-      >
-        {/* faint tint/highlight behind content to sell the "glass" surface */}
-        <View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.25)' },
-            tint ? { backgroundColor: tint, opacity: 0.12 } : null,
-          ]}
-        />
-        {children}
-      </BlurView>
-    );
-  }
-
-  // Tier 3 — plain translucent surface.
+  if (!onPress) return surface;
   return (
-    <View
-      style={[
-        { backgroundColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
-        shape,
-        style,
-      ]}
-      {...rest}
+    <Pressable
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      hitSlop={hitSlop}
+      style={({ pressed }) => ({ opacity: disabled ? 0.4 : pressed ? 0.8 : 1 })}
     >
-      {children}
-    </View>
+      {surface}
+    </Pressable>
   );
 }
-
-// GlassGroup merges nearby Glass panes on real Liquid Glass; elsewhere it's a
-// simple spacing container so your layout is identical across tiers.
-export function GlassGroup({ children, spacing = 0, style, ...rest }) {
-  if (liquidAvailable() && GE.GlassContainer) {
-    const GlassContainer = GE.GlassContainer;
-    return (
-      <GlassContainer spacing={spacing} style={style} {...rest}>
-        {children}
-      </GlassContainer>
-    );
-  }
-  return (
-    <View style={[{ gap: spacing }, style]} {...rest}>
-      {children}
-    </View>
-  );
-}
-
-export default Glass;
