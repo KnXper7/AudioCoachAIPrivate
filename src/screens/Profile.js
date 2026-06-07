@@ -177,7 +177,7 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
             const label = <Text style={{ fontFamily: t.fonts.sans, fontSize: 16, fontWeight: '700', color: '#fff' }}>Delete all recordings</Text>;
             return (isLiquidGlass() && NativeGlass) ? (
               <View style={pillStyle}>
-                <GlassFill tint={t.bad} clear={false} />
+                <GlassFill tint={t.bad} clear={false} radius={999} />
                 {label}
               </View>
             ) : (

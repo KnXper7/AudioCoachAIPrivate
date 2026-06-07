@@ -25,12 +25,14 @@ export function isLiquidGlass() {
 
 export const NativeGlass = GE ? GE.GlassView : null;
 
-// GlassFill — the glass material as an absolute-fill background layer.
-export function GlassFill({ tint, clear = false }) {
+// GlassFill — the glass material as an absolute-fill background layer. `radius`
+// gives the material its OWN rounded shape (pill/circle) so it renders correctly
+// even if the parent's overflow clip doesn't apply to the native effect layer.
+export function GlassFill({ tint, clear = false, radius }) {
   if (!NativeGlass) return null;
   return (
     <NativeGlass
-      style={StyleSheet.absoluteFill}
+      style={[StyleSheet.absoluteFill, radius != null ? { borderRadius: radius } : null]}
       glassEffectStyle={clear ? 'clear' : 'regular'}
       tintColor={tint}
     />
@@ -54,7 +56,7 @@ export function GlassCircle({
 
   const surface = glass ? (
     <View style={[base, style]}>
-      <GlassFill tint={tint} clear={clear} />
+      <GlassFill tint={tint} clear={clear} radius={size / 2} />
       {children}
     </View>
   ) : (
