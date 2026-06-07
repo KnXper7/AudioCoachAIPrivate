@@ -35,6 +35,17 @@ jobs:
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install
 
+      - name: Increase Gradle memory (avoid Metaspace OOM)
+        run: |
+          {
+            echo ""
+            echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8"
+            echo "kotlin.daemon.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=1024m"
+            echo "org.gradle.workers.max=2"
+          } >> android/gradle.properties
+          echo "----- gradle.properties tail -----"
+          tail -n 10 android/gradle.properties
+
       - name: Decode upload keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.keystore
 
