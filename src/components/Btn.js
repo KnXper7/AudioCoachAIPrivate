@@ -1,17 +1,18 @@
-// Btn.js — pill button. Variants:
-//   solid → indigo gradient (primary CTA)
-//   ghost → Liquid Glass pill on iOS 26 (blur glass elsewhere)
-//   quiet → transparent text button
+// Btn.js — pill button. On iOS 26 every variant is real Liquid Glass (purple
+// tinted for the primary action, following Apple's tinted-glass convention).
+// On Android / older iOS it keeps the original gradient/solid look — no blur,
+// no surprises. Variants: solid (primary), ghost (secondary), quiet (text).
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Glass } from './Glass';
+import { Glass, isLiquidGlass } from './Glass';
 import { useTheme } from '../theme/ThemeContext';
 import Icon from './Icon';
 
 export default function Btn({ children, onPress, variant = 'solid', size = 'lg', icon, style, disabled }) {
   const t = useTheme();
   const big = size === 'lg';
+  const glass = isLiquidGlass();
 
   const inner = (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
@@ -38,24 +39,28 @@ export default function Btn({ children, onPress, variant = 'solid', size = 'lg',
 
   let surface;
   if (variant === 'solid') {
-    surface = (
+    surface = glass ? (
+      <Glass radius={999} tint={t.accentA} clear={false} interactive dark={!!t.dark} style={[pad, center]}>
+        {inner}
+      </Glass>
+    ) : (
       <LinearGradient colors={[t.accentA, t.accentB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[radius, pad, center]}>
         {inner}
       </LinearGradient>
     );
   } else if (variant === 'ghost') {
-    // Liquid Glass pill (the iOS 26 look) with blur fallback.
-    surface = (
-      <Glass radius={999} dark={!!t.dark} isInteractive style={[pad, center, { borderWidth: 1, borderColor: t.line }]}>
+    surface = glass ? (
+      <Glass radius={999} clear interactive dark={!!t.dark} style={[pad, center, { borderWidth: 1, borderColor: t.line }]}>
         {inner}
       </Glass>
-    );
-  } else {
-    surface = (
-      <View style={[radius, pad, center, { backgroundColor: 'transparent' }]}>
+    ) : (
+      <View style={[radius, pad, center, { backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }]}>
         {inner}
       </View>
     );
+  } else {
+    // quiet — plain text button, no surface
+    surface = <View style={[radius, pad, center, { backgroundColor: 'transparent' }]}>{inner}</View>;
   }
 
   return (

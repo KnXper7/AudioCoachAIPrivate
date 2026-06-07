@@ -6,6 +6,7 @@ import Screen from '../components/Screen';
 import Card from '../components/Card';
 import Icon from '../components/Icon';
 import Btn from '../components/Btn';
+import { Glass, isLiquidGlass } from '../components/Glass';
 import ScoreDisplay from '../components/ScoreDisplay';
 import MetricBar from '../components/MetricBar';
 import ResultMedia from '../components/ResultMedia';
@@ -17,23 +18,38 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 function SuggestionItem({ s, open, onToggle, last }) {
   const t = useTheme();
+  const glass = isLiquidGlass();
+  const padX = glass ? 14 : 0;
+  const header = (
+    <Pressable
+      onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.create(280, 'easeInEaseOut', 'opacity')); onToggle(); }}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: glass ? 14 : 17, paddingHorizontal: padX }}
+    >
+      <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: t.accentA + '22', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="spark" size={17} stroke={t.accentA} />
+      </View>
+      <Text style={{ flex: 1, fontFamily: t.fonts.sans, fontSize: 15.5, fontWeight: '600', color: t.ink }}>{s.title}</Text>
+      <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}>
+        <Icon name="chevDown" size={18} stroke={t.inkFaint} />
+      </View>
+    </Pressable>
+  );
+  const body = open ? (
+    <Text style={{ paddingLeft: 42, paddingRight: padX, paddingBottom: glass ? 16 : 18, fontFamily: t.fonts.sans, fontSize: 14.5, lineHeight: 23, color: t.inkDim }}>{s.body}</Text>
+  ) : null;
+
+  if (glass) {
+    return (
+      <Glass radius={14} clear dark={!!t.dark} style={{ borderWidth: 1, borderColor: t.line, marginBottom: 10 }}>
+        {header}
+        {body}
+      </Glass>
+    );
+  }
   return (
     <View style={{ borderBottomWidth: last ? 0 : 1, borderBottomColor: t.line }}>
-      <Pressable
-        onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.create(280, 'easeInEaseOut', 'opacity')); onToggle(); }}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 17 }}
-      >
-        <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: t.accentA + '22', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="spark" size={17} stroke={t.accentA} />
-        </View>
-        <Text style={{ flex: 1, fontFamily: t.fonts.sans, fontSize: 15.5, fontWeight: '600', color: t.ink }}>{s.title}</Text>
-        <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}>
-          <Icon name="chevDown" size={18} stroke={t.inkFaint} />
-        </View>
-      </Pressable>
-      {open && (
-        <Text style={{ paddingLeft: 42, paddingBottom: 18, fontFamily: t.fonts.sans, fontSize: 14.5, lineHeight: 23, color: t.inkDim }}>{s.body}</Text>
-      )}
+      {header}
+      {body}
     </View>
   );
 }

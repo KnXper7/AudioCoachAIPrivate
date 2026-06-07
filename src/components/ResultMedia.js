@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, PanResponder } from 'react-native';
 import { Audio } from 'expo-av';
 import { useTheme } from '../theme/ThemeContext';
+import { GlassCircle } from './Glass';
 import Icon from './Icon';
 
 // Delivery cues shown inline in the transcript.
@@ -142,9 +143,9 @@ export default function ResultMedia({ result }) {
       {/* playback + draggable timeline */}
       <View style={{ padding: 16, borderRadius: 20, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <Pressable onPress={toggle} style={{ width: 46, height: 46, borderRadius: 999, backgroundColor: t.accentA, alignItems: 'center', justifyContent: 'center' }}>
+          <GlassCircle size={46} onPress={toggle} tint={t.accentA} clear={false} dark={!!t.dark} fallbackStyle={{ backgroundColor: t.accentA }}>
             <Icon name={playing ? 'pause' : 'play'} size={20} stroke={t.onAccent} />
-          </Pressable>
+          </GlassCircle>
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: t.fonts.sans, fontSize: 14.5, fontWeight: '600', color: t.ink }}>Your recording</Text>
             <Text style={{ fontFamily: t.fonts.mono, fontSize: 12, color: t.inkDim }}>{fmtT(posMs / 1000)} / {fmtT(durSec)} · loops</Text>

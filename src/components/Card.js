@@ -1,35 +1,38 @@
-// Card.js — glass surface card.
-// Renders through <Glass>: real Apple Liquid Glass on iOS 26, frosted blur
-// glass everywhere else. Used across every screen, so this is the single place
-// that turns the whole app glassy.
+// Card.js — surface card. Real Liquid Glass on iOS 26; your original solid
+// surface on Android / older iOS (no blur, no surprises). Used across every
+// screen, so this is the single switch for card surfaces app-wide.
 import React from 'react';
-import { Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
-import { Glass } from './Glass';
+import { Glass, isLiquidGlass } from './Glass';
 
 export default function Card({ children, style, onPress, pad = 20 }) {
   const t = useTheme();
+  const glass = isLiquidGlass();
 
-  const surface = (
+  const surface = glass ? (
     <Glass
       radius={24}
+      clear
       dark={!!t.dark}
-      intensity={t.dark ? 40 : 55}
+      style={[{ borderWidth: 1, borderColor: t.line, padding: pad }, style]}
+    >
+      {children}
+    </Glass>
+  ) : (
+    <View
       style={[
-        { borderWidth: 1, borderColor: t.line, padding: pad },
+        { backgroundColor: t.surface, borderWidth: 1, borderColor: t.line, borderRadius: 24, padding: pad },
         style,
       ]}
     >
       {children}
-    </Glass>
+    </View>
   );
 
   if (onPress) {
     return (
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, borderRadius: 24 })}
-      >
+      <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, borderRadius: 24 })}>
         {surface}
       </Pressable>
     );

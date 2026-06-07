@@ -24,7 +24,7 @@
 //   dark           bool — force dark blur tint (default true; set false in light mode)
 
 import React from 'react';
-import { View, Platform, StyleSheet } from 'react-native';
+import { View, Pressable, Platform, StyleSheet } from 'react-native';
 
 // Tier 1: real Liquid Glass (only present after an SDK 54 upgrade).
 let GE = null;
@@ -144,6 +144,46 @@ export function GlassGroup({ children, spacing = 0, style, ...rest }) {
     <View style={[{ gap: spacing }, style]} {...rest}>
       {children}
     </View>
+  );
+}
+
+// GlassCircle — a circular Liquid Glass button (X close, play, avatar badge, etc.).
+// On iOS 26 it's a real glass circle; otherwise it falls back to a plain circle
+// styled by `fallbackStyle` so the off-iOS look stays exactly as before.
+export function GlassCircle({
+  size = 40,
+  onPress,
+  children,
+  tint,
+  clear = true,
+  interactive = true,
+  dark = true,
+  style,
+  fallbackStyle,
+  disabled,
+  hitSlop,
+}) {
+  const base = { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' };
+  const surface = liquidAvailable()
+    ? (
+      <Glass radius={size / 2} clear={clear} tint={tint} interactive={interactive} dark={dark} style={[base, style]}>
+        {children}
+      </Glass>
+    )
+    : (
+      <View style={[base, fallbackStyle, style]}>{children}</View>
+    );
+
+  if (!onPress) return surface;
+  return (
+    <Pressable
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      hitSlop={hitSlop}
+      style={({ pressed }) => ({ opacity: disabled ? 0.4 : pressed ? 0.8 : 1 })}
+    >
+      {surface}
+    </Pressable>
   );
 }
 

@@ -7,6 +7,7 @@ import Screen from '../components/Screen';
 import OrbMark from '../components/OrbMark';
 import Btn from '../components/Btn';
 import Icon from '../components/Icon';
+import { GlassCircle } from '../components/Glass';
 import { useTheme } from '../theme/ThemeContext';
 import { purchasePro, restorePurchases, getProPackage } from '../services/purchases';
 
@@ -72,12 +73,11 @@ export default function Paywall({ onClose, onUnlock, usedFree }) {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 24, paddingBottom: insets.bottom + 24, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <Pressable
-          onPress={onClose}
-          style={{ alignSelf: 'flex-end', width: 38, height: 38, borderRadius: 999, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Icon name="close" size={19} stroke={t.inkDim} />
-        </Pressable>
+        <View style={{ alignSelf: 'flex-end' }}>
+          <GlassCircle size={38} onPress={onClose} clear dark={!!t.dark} fallbackStyle={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}>
+            <Icon name="close" size={19} stroke={t.inkDim} />
+          </GlassCircle>
+        </View>
 
         <View style={{ alignItems: 'center', marginTop: 6 }}>
           <OrbMark size={96} />

@@ -7,6 +7,7 @@ import Screen from '../components/Screen';
 import Card from '../components/Card';
 import Icon from '../components/Icon';
 import Btn from '../components/Btn';
+import { Glass, isLiquidGlass } from '../components/Glass';
 import { useTheme, useTweaks } from '../theme/ThemeContext';
 
 const DEFAULT_AVATARS = [
@@ -106,10 +107,17 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
               </View>
               {!isPro && onGetPro && (
                 <Pressable onPress={onGetPro} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-                  <LinearGradient colors={[t.accentA, t.accentB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999 }}>
-                    <Icon name="spark" size={12} stroke={t.onAccent} />
-                    <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, fontWeight: '700', color: t.onAccent }}>Get Pro</Text>
-                  </LinearGradient>
+                  {isLiquidGlass() ? (
+                    <Glass radius={999} tint={t.accentA} clear={false} dark={!!t.dark} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 12, borderWidth: 1, borderColor: t.line }}>
+                      <Icon name="spark" size={12} stroke={t.onAccent} />
+                      <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, fontWeight: '700', color: t.onAccent }}>Get Pro</Text>
+                    </Glass>
+                  ) : (
+                    <LinearGradient colors={[t.accentA, t.accentB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999 }}>
+                      <Icon name="spark" size={12} stroke={t.onAccent} />
+                      <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, fontWeight: '700', color: t.onAccent }}>Get Pro</Text>
+                    </LinearGradient>
+                  )}
                 </Pressable>
               )}
               {isPro && onManageSubscription && (
@@ -154,27 +162,50 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
         )}
 
         <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, letterSpacing: 1.5, color: t.inkFaint, textTransform: 'uppercase', marginTop: 30, marginBottom: 12 }}>Appearance</Text>
-        <View style={{ flexDirection: 'row', backgroundColor: t.surface, borderWidth: 1, borderColor: t.line, borderRadius: 14, padding: 4 }}>
+        <Glass radius={14} clear dark={!!t.dark} style={{ flexDirection: 'row', padding: 4, borderWidth: 1, borderColor: t.line }}>
           {['system', 'light', 'dark'].map((opt) => {
             const on = pref === opt;
+            const label = (
+              <Text style={{ fontFamily: t.fonts.sans, fontSize: 13.5, fontWeight: '600', color: on ? t.onAccent : t.inkDim, textTransform: 'capitalize' }}>{opt}</Text>
+            );
             return (
-              <Pressable key={opt} onPress={() => setThemePref(opt)} style={{ flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', backgroundColor: on ? t.accentA : 'transparent' }}>
-                <Text style={{ fontFamily: t.fonts.sans, fontSize: 13.5, fontWeight: '600', color: on ? t.onAccent : t.inkDim, textTransform: 'capitalize' }}>{opt}</Text>
+              <Pressable key={opt} onPress={() => setThemePref(opt)} style={{ flex: 1 }}>
+                {on ? (
+                  isLiquidGlass() ? (
+                    <Glass radius={10} tint={t.accentA} clear={false} dark={!!t.dark} style={{ paddingVertical: 10, alignItems: 'center' }}>{label}</Glass>
+                  ) : (
+                    <View style={{ paddingVertical: 10, borderRadius: 10, alignItems: 'center', backgroundColor: t.accentA }}>{label}</View>
+                  )
+                ) : (
+                  <View style={{ paddingVertical: 10, borderRadius: 10, alignItems: 'center' }}>{label}</View>
+                )}
               </Pressable>
             );
           })}
-        </View>
+        </Glass>
 
         <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, letterSpacing: 1.5, color: t.inkFaint, textTransform: 'uppercase', marginTop: 30, marginBottom: 12 }}>Your data</Text>
         <Pressable
           onPress={total > 0 && onDeleteAllRecordings ? confirmDeleteAll : undefined}
-          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: t.bad + '55', backgroundColor: t.bad + '12', opacity: total > 0 ? (pressed ? 0.85 : 1) : 0.45 })}
+          style={({ pressed }) => ({ opacity: total > 0 ? (pressed ? 0.85 : 1) : 0.45 })}
         >
-          <Icon name="trash" size={18} stroke={t.bad} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: t.fonts.sans, fontSize: 15, fontWeight: '700', color: t.bad }}>Delete all recordings</Text>
-            <Text style={{ fontFamily: t.fonts.sans, fontSize: 12.5, color: t.inkDim }}>{total > 0 ? `Removes all ${total} recording${total === 1 ? '' : 's'} from this device` : 'No recordings to delete'}</Text>
-          </View>
+          {(() => {
+            const deleteInner = (
+              <>
+                <Icon name="trash" size={18} stroke={t.bad} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: t.fonts.sans, fontSize: 15, fontWeight: '700', color: t.bad }}>Delete all recordings</Text>
+                  <Text style={{ fontFamily: t.fonts.sans, fontSize: 12.5, color: t.inkDim }}>{total > 0 ? `Removes all ${total} recording${total === 1 ? '' : 's'} from this device` : 'No recordings to delete'}</Text>
+                </View>
+              </>
+            );
+            const row = { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderWidth: 1, borderColor: t.bad + '55' };
+            return isLiquidGlass() ? (
+              <Glass radius={14} tint={t.bad} clear={false} dark={!!t.dark} style={row}>{deleteInner}</Glass>
+            ) : (
+              <View style={[row, { borderRadius: 14, backgroundColor: t.bad + '12' }]}>{deleteInner}</View>
+            );
+          })()}
         </Pressable>
       </ScrollView>
 
