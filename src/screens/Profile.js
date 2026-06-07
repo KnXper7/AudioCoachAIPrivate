@@ -162,27 +162,40 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
         )}
 
         <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, letterSpacing: 1.5, color: t.inkFaint, textTransform: 'uppercase', marginTop: 30, marginBottom: 12 }}>Appearance</Text>
-        <Glass radius={14} clear dark={!!t.dark} style={{ flexDirection: 'row', padding: 4, borderWidth: 1, borderColor: t.line }}>
-          {['system', 'light', 'dark'].map((opt) => {
-            const on = pref === opt;
-            const label = (
-              <Text style={{ fontFamily: t.fonts.sans, fontSize: 13.5, fontWeight: '600', color: on ? t.onAccent : t.inkDim, textTransform: 'capitalize' }}>{opt}</Text>
-            );
-            return (
-              <Pressable key={opt} onPress={() => setThemePref(opt)} style={{ flex: 1 }}>
-                {on ? (
-                  isLiquidGlass() ? (
-                    <Glass radius={10} tint={t.accentA} clear={false} dark={!!t.dark} style={{ paddingVertical: 10, alignItems: 'center' }}>{label}</Glass>
+        {isLiquidGlass() ? (
+          // iOS 26 — single glass pill (tab-bar style); selected = tinted glass capsule.
+          <Glass radius={16} clear dark={!!t.dark} style={{ flexDirection: 'row', padding: 5 }}>
+            {['system', 'light', 'dark'].map((opt) => {
+              const on = pref === opt;
+              const seg = (
+                <View style={{ paddingVertical: 9, alignItems: 'center' }}>
+                  <Text style={{ fontFamily: t.fonts.sans, fontSize: 13.5, fontWeight: '600', color: on ? t.onAccent : t.ink, textTransform: 'capitalize' }}>{opt}</Text>
+                </View>
+              );
+              return (
+                <Pressable key={opt} onPress={() => setThemePref(opt)} style={{ flex: 1 }}>
+                  {on ? (
+                    <Glass radius={12} tint={t.accent} clear={false} interactive={false} dark={!!t.dark}>{seg}</Glass>
                   ) : (
-                    <View style={{ paddingVertical: 10, borderRadius: 10, alignItems: 'center', backgroundColor: t.accentA }}>{label}</View>
-                  )
-                ) : (
-                  <View style={{ paddingVertical: 10, borderRadius: 10, alignItems: 'center' }}>{label}</View>
-                )}
-              </Pressable>
-            );
-          })}
-        </Glass>
+                    seg
+                  )}
+                </Pressable>
+              );
+            })}
+          </Glass>
+        ) : (
+          // Android / older iOS — original solid segmented control.
+          <View style={{ flexDirection: 'row', backgroundColor: t.surface, borderWidth: 1, borderColor: t.line, borderRadius: 14, padding: 4 }}>
+            {['system', 'light', 'dark'].map((opt) => {
+              const on = pref === opt;
+              return (
+                <Pressable key={opt} onPress={() => setThemePref(opt)} style={{ flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', backgroundColor: on ? t.accentA : 'transparent' }}>
+                  <Text style={{ fontFamily: t.fonts.sans, fontSize: 13.5, fontWeight: '600', color: on ? t.onAccent : t.inkDim, textTransform: 'capitalize' }}>{opt}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
         <Text style={{ fontFamily: t.fonts.sans, fontSize: 12, letterSpacing: 1.5, color: t.inkFaint, textTransform: 'uppercase', marginTop: 30, marginBottom: 12 }}>Your data</Text>
         <Pressable
@@ -200,8 +213,10 @@ export default function Profile({ isPro, groups, profilePic, userName, onSetName
               </>
             );
             const row = { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderWidth: 1, borderColor: t.bad + '55' };
+            // Clear (untinted) glass so the red label stays readable — never
+            // tint a surface the same color as its text.
             return isLiquidGlass() ? (
-              <Glass radius={14} tint={t.bad} clear={false} dark={!!t.dark} style={row}>{deleteInner}</Glass>
+              <Glass radius={14} clear dark={!!t.dark} style={row}>{deleteInner}</Glass>
             ) : (
               <View style={[row, { borderRadius: 14, backgroundColor: t.bad + '12' }]}>{deleteInner}</View>
             );
