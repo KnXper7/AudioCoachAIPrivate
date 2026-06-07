@@ -41,7 +41,7 @@ import Analyzing from './src/screens/Analyzing';
 import Results from './src/screens/Results';
 import Paywall from './src/screens/Paywall';
 import Profile from './src/screens/Profile';
-import BottomNav from './src/components/BottomNav';
+import TabsHost from './src/components/TabsHost';
 import ScreenTransition from './src/components/ScreenTransition';
 
 const FREE = 3;              // free takes…
@@ -306,11 +306,20 @@ function Root() {
   if (!hydrated) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
   const curGroup = groupById(viewGroupId);
+  const inTabs = screen === 'dashboard' || screen === 'profile';
+
+  // The two tabbed screens, built with live props (both mount inside TabsHost).
+  const dashboardEl = (
+    <Dashboard isPro={st.isPro} scansLeft={takesLeft()} groups={st.groups} onNew={beginNewGroup} onOpenGroup={openGroup} onRecordInto={recordIntoGroup} />
+  );
+  const profileEl = (
+    <Profile isPro={st.isPro} groups={st.groups} profilePic={st.profilePic} userName={st.userName} onSetName={setUserName} onSetAvatar={setAvatar} onOpenAttempt={openAttempt} onReset={resetDemo} onNew={beginNewGroup} onGetPro={() => openPaywall(null)} onManageSubscription={openCustomerCenter} onDeleteAllRecordings={deleteAllRecordings} />
+  );
+
+  // Everything else is a full-screen overlay over the state machine.
   let view = null;
   if (screen === 'onboarding')
     view = <Onboarding onStart={() => { setSt((s) => ({ ...s, seen: true })); setScreen('dashboard'); }} />;
-  else if (screen === 'dashboard')
-    view = <Dashboard isPro={st.isPro} scansLeft={takesLeft()} groups={st.groups} onNew={beginNewGroup} onOpenGroup={openGroup} onRecordInto={recordIntoGroup} />;
   else if (screen === 'groupDetail')
     view = <GroupDetail group={curGroup} onBack={goDashboard} onRecordAgain={() => recordIntoGroup(curGroup)} onOpenAttempt={openAttempt} onDeleteGroup={deleteGroup} onDeleteAttempt={deleteAttempt} />;
   else if (screen === 'voice')
@@ -332,17 +341,20 @@ function Root() {
     );
   else if (screen === 'paywall')
     view = <Paywall onClose={goDashboard} onUnlock={unlock} usedFree={takesLeft() <= 0} />;
-  else if (screen === 'profile')
-    view = <Profile isPro={st.isPro} groups={st.groups} profilePic={st.profilePic} userName={st.userName} onSetName={setUserName} onSetAvatar={setAvatar} onOpenAttempt={openAttempt} onReset={resetDemo} onNew={beginNewGroup} onGetPro={() => openPaywall(null)} onManageSubscription={openCustomerCenter} onDeleteAllRecordings={deleteAllRecordings} />;
-
-  const showNav = screen === 'dashboard' || screen === 'profile';
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       <StatusBar style={t.dark ? 'light' : 'dark'} />
-      <ScreenTransition key={screen}>{view}</ScreenTransition>
-      {showNav && (
-        <BottomNav tab={screen === 'profile' ? 'profile' : 'home'} onTab={(id) => setScreen(id === 'home' ? 'dashboard' : 'profile')} bottomInset={insets.bottom} />
+      {inTabs ? (
+        <TabsHost
+          activeTab={screen === 'profile' ? 'you' : 'home'}
+          onTabChange={(key) => setScreen(key === 'you' ? 'profile' : 'dashboard')}
+          insets={insets}
+          dashboard={dashboardEl}
+          profile={profileEl}
+        />
+      ) : (
+        <ScreenTransition key={screen}>{view}</ScreenTransition>
       )}
     </View>
   );
