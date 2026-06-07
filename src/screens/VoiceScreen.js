@@ -145,9 +145,10 @@ export default function VoiceScreen({ onClose, onCapture, lockedContext, lockedT
         <View style={{ flex: 1, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 20, paddingHorizontal: 24 }}>
           {/* top bar */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <GlassCircle size={38} onPress={onClose} hitSlop={10} clear dark={!!t.dark} fallbackStyle={{ backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }}>
+            <GlassCircle size={38} onPress={onClose} hitSlop={10} clear={false} fallbackStyle={{ backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }}>
               <Icon name="close" size={19} stroke={t.ink} />
             </GlassCircle>
+            {/* note: real glass shows only in a native iOS 26 build, not Expo Go */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Icon name="voice" size={16} stroke={t.inkDim} />
               <Text style={{ fontFamily: t.fonts.sans, fontSize: 14, fontWeight: '600', color: t.inkDim }}>Voice Check</Text>
