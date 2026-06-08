@@ -85,6 +85,22 @@ export async function getCustomerInfo() {
   try { return await Purchases.getCustomerInfo(); } catch (e) { return null; }
 }
 
+// Like checkProStatus, but first invalidates RevenueCat's cached customer info so
+// we fetch FRESH state from the server. Use this on app foreground so a cancelled
+// / expired subscription is detected and Pro is revoked promptly. Returns
+// true/false definitively, or null if RevenueCat couldn't be reached.
+export async function refreshProStatus() {
+  if (!Purchases || !configured) return null;
+  try {
+    if (typeof Purchases.invalidateCustomerInfoCache === 'function') {
+      await Purchases.invalidateCustomerInfoCache();
+    }
+    return hasPro(await Purchases.getCustomerInfo());
+  } catch (e) {
+    return null;
+  }
+}
+
 // Details of the user's active subscription (which product, period, renewal),
 // or null if they have none. Used to record WHAT plan they hold in the cloud.
 export async function getActiveSubscription() {

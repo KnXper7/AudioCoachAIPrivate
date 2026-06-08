@@ -2,7 +2,7 @@
 // each group is one line/speech you rehearse repeatedly; the coach tracks your
 // improvement across attempts. Onboarding once; system/light/dark theming.
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, BackHandler, Alert, Platform } from 'react-native';
+import { View, BackHandler, Alert, Platform, AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 // Android system navigation bar — optional native module (guarded for Expo Go).
@@ -25,6 +25,7 @@ import {
   uiAvailable,
   initPurchases,
   checkProStatus,
+  refreshProStatus,
   onProStatusChange,
   presentPaywall,
   paywallResultIsPro,
@@ -107,6 +108,24 @@ function Root() {
     if (!purchasesAvailable()) return;
     const unsub = onProStatusChange((active) => setSt((prev) => ({ ...prev, isPro: active })));
     return unsub;
+  }, []);
+
+  // On app foreground, re-check Pro with a FRESH server fetch so a cancelled or
+  // expired subscription revokes Pro promptly — not just on a cold restart.
+  useEffect(() => {
+    if (!purchasesAvailable()) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      refreshProStatus().then((active) => {
+        if (active === null) return; // couldn't reach RevenueCat → keep current state
+        setSt((prev) => (prev.isPro === active ? prev : { ...prev, isPro: active }));
+        if (cloudConfigured()) {
+          syncPro(active);
+          getActiveSubscription().then(syncSubscription);
+        }
+      });
+    });
+    return () => sub.remove();
   }, []);
 
   useEffect(() => { if (hydrated) saveState(st); }, [st, hydrated]);
