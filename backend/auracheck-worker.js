@@ -52,6 +52,68 @@ function buildPrompt(ctx, isPro) {
   );
 }
 
+// ——— Debate Mode (Pro) ———
+// A live, turn-based spoken debate against the AI, then a full coaching analysis.
+function debateTurnPrompt(topic, side, history) {
+  const convo = (history || []).map((h) => `${h.role === 'ai' ? 'You' : 'User'}: ${h.text}`).join('\n') || '(the user is about to make their opening point)';
+  return (
+    `You are a sharp, worthy opponent in a LIVE SPOKEN debate. Topic: "${topic}". ` +
+    `The user argues the "${side}" side; you argue the OPPOSING side and never concede. ` +
+    `Conversation so far (most recent last):\n${convo}\n` +
+    `The user's newest spoken turn is in the attached audio. Do two things: ` +
+    `(1) transcribe the user's turn verbatim; (2) reply with ONE punchy rebuttal that directly answers their point and pushes your side — max ~35 words, conversational, a little provocative but respectful. ` +
+    `Return STRICT JSON ONLY: {"you":"<verbatim transcript of the user's turn>","ai":"<your rebuttal>"}`
+  );
+}
+
+function debateAnalysisPrompt(topic, side, transcript) {
+  return (
+    `You are an elite debate and communication coach. Coach the USER (not the AI) on their performance in this spoken debate. ` +
+    `Topic: "${topic}". The user argued the "${side}" side.\n` +
+    `Transcript (You = AI opponent, User = the person you are coaching):\n${transcript}\n` +
+    `Judge BOTH: argumentation (clear claims, structure, did they actually rebut the opponent, reasoning/evidence, persuasiveness, any dropped points or fallacies) AND delivery signals inferable from their words (filler words, hedging, conciseness, confidence, and the 5 vocal foundations: rate, volume, pitch/melody, tonality, pause). ` +
+    `Warm, direct, specific — every line teaches. ` +
+    `Return STRICT JSON ONLY: ` +
+    `{"overall":<int 0-100>,"verdict":"<one punchy sentence>",` +
+    `"scores":[{"label":"Argument","value":<0-100>,"note":"<3-6 words>"},{"label":"Rebuttal","value":<0-100>,"note":""},{"label":"Clarity","value":<0-100>,"note":""},{"label":"Confidence","value":<0-100>,"note":""}],` +
+    `"strengths":["<2-3 distinct, specific wins>"],` +
+    `"improvements":[{"title":"<short imperative>","body":"<2-3 specific sentences>"}],` +
+    `"fillerWords":<int count of um/uh/like/you-know across the user's turns>,"bestLine":"<the user's strongest line, verbatim>","nextTip":"<the single most important fix>"}`
+  );
+}
+
+// Shared Gemini call with retry/backoff + model fallback. `full`=true uses the
+// stronger model first (analysis); otherwise the fast/cheap model first (turns).
+async function geminiCall(env, parts, temperature, full) {
+  const MODELS = full
+    ? ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
+    : ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash'];
+  const TRANSIENT = new Set([429, 500, 503]);
+  const body = JSON.stringify({ contents: [{ parts }], generationConfig: { temperature, responseMimeType: 'application/json' } });
+  let res, lastDetail = '';
+  outer:
+  for (const model of MODELS) {
+    for (let a = 0; a < 3; a++) {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+      );
+      if (res.ok) break outer;
+      lastDetail = (await res.text()).slice(0, 300);
+      if (TRANSIENT.has(res.status)) { await new Promise((r) => setTimeout(r, 500 * Math.pow(2, a))); continue; }
+      break;
+    }
+  }
+  if (!res || !res.ok) {
+    const code = res ? res.status : 0;
+    const overloaded = code === 429 || code === 503;
+    return { error: { error: 'gemini', overloaded, detail: lastDetail || 'request failed' }, status: overloaded ? 503 : 502 };
+  }
+  const gj = await res.json();
+  const text = gj?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+  try { return { data: JSON.parse(text) }; } catch (e) { return { error: { error: 'parse', detail: 'non-JSON' }, status: 502 }; }
+}
+
 export default {
   async fetch(request, env) {
     const cors = {
@@ -68,6 +130,29 @@ export default {
         JSON.stringify({ ok: true, service: 'audiocoach', hasKey: !!env.GEMINI_API_KEY, hint: 'POST audio to /analyze' }),
         { headers: { ...cors, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Debate Mode (Pro): turn = one spoken exchange; analyze = post-debate coaching.
+    if (url.pathname === '/debate' && request.method === 'POST') {
+      if (!env.GEMINI_API_KEY) return new Response(JSON.stringify({ error: 'config' }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
+      try {
+        const b = await request.json();
+        const topic = (b.topic || '').trim();
+        const side = (b.side || '').trim();
+        let parts, out;
+        if (b.mode === 'analyze') {
+          parts = [{ text: debateAnalysisPrompt(topic, side, (b.transcript || '').trim()) }];
+          out = await geminiCall(env, parts, 0.7, true);
+        } else {
+          parts = [{ text: debateTurnPrompt(topic, side, b.history || []) }];
+          if (b.audio) parts.push({ inline_data: { mime_type: b.audioMime || 'audio/mp4', data: b.audio } });
+          out = await geminiCall(env, parts, 0.9, false);
+        }
+        if (out.error) return new Response(JSON.stringify(out.error), { status: out.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify(out.data), { headers: { ...cors, 'Content-Type': 'application/json' } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
+      }
     }
 
     if (url.pathname !== '/analyze' || request.method !== 'POST') return new Response('Not found', { status: 404, headers: cors });

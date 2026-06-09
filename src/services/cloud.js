@@ -130,6 +130,14 @@ export async function syncSubscription(sub) {
   } catch (e) {}
 }
 
+// Record that the user has used their one free Debate trial.
+export async function markFreeDebateUsed() {
+  if (!ready || !auth.currentUser) return;
+  try {
+    await M.fs.setDoc(M.fs.doc(db, 'users', auth.currentUser.uid), { freeDebateUsed: true }, { merge: true });
+  } catch (e) {}
+}
+
 // Append a purchase record (and mark Pro).
 export async function recordPurchase(entry) {
   if (!ready || !auth.currentUser) return;

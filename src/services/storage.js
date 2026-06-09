@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORE = 'audiocoach_state_v1';
 
-const DEFAULT = { seen: false, scanCount: 0, isPro: false, profilePic: null, userName: 'User_001', takeTimes: [], groups: [] };
+const DEFAULT = { seen: false, scanCount: 0, isPro: false, profilePic: null, userName: 'User_001', takeTimes: [], groups: [], freeDebateUsed: false };
 
 export async function loadState() {
   try {

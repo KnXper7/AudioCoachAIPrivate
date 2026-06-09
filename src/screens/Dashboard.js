@@ -49,7 +49,7 @@ function SessionCard({ group, onPress }) {
   );
 }
 
-export default function Dashboard({ isPro, scansLeft, groups, onNew, onOpenGroup, onRecordInto }) {
+export default function Dashboard({ isPro, scansLeft, groups, onNew, onOpenGroup, onRecordInto, onDebate, debateFree }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const [picker, setPicker] = useState(false);
@@ -99,6 +99,21 @@ export default function Dashboard({ isPro, scansLeft, groups, onNew, onOpenGroup
           <Text style={{ fontFamily: t.fonts.serif, fontSize: 26, lineHeight: 32, color: t.ink, includeFontPadding: false, marginTop: 18 }}>Tap to record</Text>
           <Text style={{ fontFamily: t.fonts.sans, fontSize: 13.5, lineHeight: 19, color: t.inkDim, marginTop: 6, textAlign: 'center' }}>Speak for up to a minute and get instant coaching on how you sound.</Text>
         </Pressable>
+
+        {onDebate && (
+          <Pressable onPress={onDebate} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1, marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface })}>
+            <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: t.accentA + '1f', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="spark" size={22} stroke={t.accentA} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: t.fonts.sans, fontSize: 16, fontWeight: '700', color: t.ink }}>Debate the AI</Text>
+              <Text style={{ fontFamily: t.fonts.sans, fontSize: 12.5, color: t.inkDim }}>Argue a topic out loud — it fights back, then coaches you</Text>
+            </View>
+            <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: t.accentA }}>
+              <Text style={{ fontFamily: t.fonts.sans, fontSize: 10.5, fontWeight: '800', color: t.onAccent, letterSpacing: 0.5 }}>{isPro ? 'PRO' : debateFree ? '1 FREE' : 'PRO'}</Text>
+            </View>
+          </Pressable>
+        )}
 
         {groups.length > 0 && (
           <>

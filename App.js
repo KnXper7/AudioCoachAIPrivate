@@ -32,7 +32,7 @@ import {
   presentCustomerCenter,
   getActiveSubscription,
 } from './src/services/purchases';
-import { cloudConfigured, initCloud, ensureProfile, claimUsername, recordPurchase, syncPro, syncSubscription } from './src/services/cloud';
+import { cloudConfigured, initCloud, ensureProfile, claimUsername, recordPurchase, syncPro, syncSubscription, markFreeDebateUsed } from './src/services/cloud';
 
 import Onboarding from './src/screens/Onboarding';
 import Dashboard from './src/screens/Dashboard';
@@ -42,6 +42,7 @@ import Analyzing from './src/screens/Analyzing';
 import Results from './src/screens/Results';
 import Paywall from './src/screens/Paywall';
 import Profile from './src/screens/Profile';
+import DebateScreen from './src/screens/DebateScreen';
 import TabsHost from './src/components/TabsHost';
 import ScreenTransition from './src/components/ScreenTransition';
 
@@ -293,6 +294,18 @@ function Root() {
     setViewGroupId(null);
   };
 
+  // Debate Mode: Pro users get it unlimited; everyone else gets ONE free trial.
+  const openDebate = () => {
+    if (st.isPro || !st.freeDebateUsed) { setScreen('debate'); return; }
+    openPaywall(null); // free trial spent → upsell
+  };
+  // Called when a non-Pro user actually starts their free debate — burns the trial.
+  const startDebateTrial = () => {
+    if (st.isPro || st.freeDebateUsed) return;
+    setSt((s) => ({ ...s, freeDebateUsed: true }));
+    if (cloudConfigured()) markFreeDebateUsed();
+  };
+
   const openGroup = (g) => { setViewGroupId(g.id); setScreen('groupDetail'); };
   const openAttempt = (att) => { setResult(att); setReadOnly(true); setScreen('results'); };
   const resetDemo = () => { setSt({ ...DEFAULT_STATE, seen: true }); setScreen('dashboard'); };
@@ -315,7 +328,7 @@ function Root() {
   useEffect(() => {
     const onBack = () => {
       if (screen === 'results') { setScreen(readOnly && viewGroupId && groupById(viewGroupId) ? 'groupDetail' : 'dashboard'); return true; }
-      if (['voice', 'analyzing', 'paywall', 'profile', 'groupDetail'].includes(screen)) { setScreen('dashboard'); return true; }
+      if (['voice', 'analyzing', 'paywall', 'profile', 'groupDetail', 'debate'].includes(screen)) { setScreen('dashboard'); return true; }
       return false;
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
@@ -329,7 +342,7 @@ function Root() {
 
   // The two tabbed screens, built with live props (both mount inside TabsHost).
   const dashboardEl = (
-    <Dashboard isPro={st.isPro} scansLeft={takesLeft()} groups={st.groups} onNew={beginNewGroup} onOpenGroup={openGroup} onRecordInto={recordIntoGroup} />
+    <Dashboard isPro={st.isPro} scansLeft={takesLeft()} groups={st.groups} onNew={beginNewGroup} onOpenGroup={openGroup} onRecordInto={recordIntoGroup} onDebate={openDebate} debateFree={!st.isPro && !st.freeDebateUsed} />
   );
   const profileEl = (
     <Profile isPro={st.isPro} groups={st.groups} profilePic={st.profilePic} userName={st.userName} onSetName={setUserName} onSetAvatar={setAvatar} onOpenAttempt={openAttempt} onReset={resetDemo} onNew={beginNewGroup} onGetPro={() => openPaywall(null)} onManageSubscription={openCustomerCenter} onDeleteAllRecordings={deleteAllRecordings} />
@@ -360,6 +373,8 @@ function Root() {
     );
   else if (screen === 'paywall')
     view = <Paywall onClose={goDashboard} onUnlock={unlock} usedFree={takesLeft() <= 0} />;
+  else if (screen === 'debate')
+    view = <DebateScreen isPro={st.isPro} isFreeTrial={!st.isPro && !st.freeDebateUsed} onClose={goDashboard} onStartTrial={startDebateTrial} onGetPro={() => openPaywall(null)} />;
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
